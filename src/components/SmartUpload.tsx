@@ -234,7 +234,9 @@ export function SmartUpload() {
   }
 
   const readyItems = items.filter((i) => i.status === 'ready')
-  const allReady = readyItems.length > 0
+  const analyzingItems = items.filter((i) => i.status === 'analyzing')
+  // Only offer save once every file has finished analyzing (ready or error)
+  const allReady = readyItems.length > 0 && analyzingItems.length === 0
   // When identity is known from cookie, uploader is implicit — no manual selection needed
   const canSaveAll = allReady && (identity !== null || readyItems.every((i) => i.uploaderName !== ''))
 
@@ -380,6 +382,13 @@ export function SmartUpload() {
               />
             ))}
           </div>
+        )}
+
+        {/* Analyzing progress hint */}
+        {analyzingItems.length > 0 && readyItems.length > 0 && (
+          <p style={{ textAlign: 'center', fontSize: '0.8125rem', color: 'var(--muted)' }}>
+            Analyserar {analyzingItems.length} till…
+          </p>
         )}
 
         {/* Actions */}
