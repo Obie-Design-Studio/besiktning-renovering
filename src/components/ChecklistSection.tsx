@@ -104,8 +104,8 @@ function ChecklistItemRow({ item, uploads, commentsBySlug, isActive, onToggle }:
             </div>
           )}
 
-          {/* Section-level comment thread (for asking about missing docs, etc.) */}
-          <CommentThread slug={item.slug} comments={sectionComments} />
+          {/* Section-level comment thread — only shown when no files uploaded yet */}
+          {!hasUploads && <CommentThread slug={item.slug} comments={sectionComments} />}
         </div>
 
         {/* Upload action */}
