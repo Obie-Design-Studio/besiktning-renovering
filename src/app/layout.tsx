@@ -16,28 +16,26 @@ export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="sv">
       <body className="min-h-screen antialiased" style={{ background: 'var(--background)', color: 'var(--foreground)' }}>
-        <header style={{ borderBottom: '1px solid var(--border)', background: 'var(--card)' }}>
-          <div className="mx-auto max-w-3xl px-6 py-4 flex items-center justify-between">
-            <div>
+        <IdentityProvider>
+          <header style={{ borderBottom: '1px solid var(--border)', background: 'var(--card)' }}>
+            <div className="mx-auto max-w-3xl px-6 py-4 flex items-center justify-between">
               <span className="text-xs font-medium tracking-widest uppercase" style={{ color: 'var(--muted)' }}>
                 Besiktningsportal
               </span>
+              <IdentityBadge />
             </div>
-            <IdentityBadge />
-          </div>
-        </header>
+          </header>
 
-        <main className="mx-auto max-w-3xl px-6 py-12">
-          <IdentityProvider>{children}</IdentityProvider>
-        </main>
+          <main className="mx-auto max-w-3xl px-6 py-12">{children}</main>
 
-        <footer className="mx-auto max-w-3xl px-6 pb-12">
-          <div style={{ borderTop: '1px solid var(--border)', paddingTop: '2rem' }}>
-            <p className="text-xs" style={{ color: 'var(--muted)' }}>
-              Schlyters Väg 4, 224 60 Lund &nbsp;·&nbsp; Tobias Johansson &amp; Elisabeth Ståhl &nbsp;·&nbsp; Palmens Byggservice AB
-            </p>
-          </div>
-        </footer>
+          <footer className="mx-auto max-w-3xl px-6 pb-12">
+            <div style={{ borderTop: '1px solid var(--border)', paddingTop: '2rem' }}>
+              <p className="text-xs" style={{ color: 'var(--muted)' }}>
+                Schlyters Väg 4, 224 60 Lund &nbsp;·&nbsp; Tobias Johansson &amp; Elisabeth Ståhl &nbsp;·&nbsp; Palmens Byggservice AB
+              </p>
+            </div>
+          </footer>
+        </IdentityProvider>
       </body>
     </html>
   )

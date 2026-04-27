@@ -44,9 +44,7 @@ function PartyCard({ role, name, company, contact, tasks }: PartyCardProps) {
               <dt className="text-xs" style={{ color: 'var(--muted)', marginBottom: '1px' }}>{label}</dt>
               <dd className="text-sm font-medium" style={{ color: 'var(--foreground)', wordBreak: 'break-all' }}>
                 {href ? (
-                  <a href={href} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', textDecoration: 'underline', textDecorationColor: 'transparent' }}
-                    onMouseEnter={e => (e.currentTarget.style.textDecorationColor = 'var(--accent)')}
-                    onMouseLeave={e => (e.currentTarget.style.textDecorationColor = 'transparent')}>
+                  <a href={href} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', textDecoration: 'underline' }}>
                     {value}
                   </a>
                 ) : value}

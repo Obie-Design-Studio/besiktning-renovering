@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { resolveToken, COOKIE_NAME, COOKIE_MAX_AGE } from '@/lib/identity'
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const token = request.nextUrl.searchParams.get('token')
 
   if (token) {

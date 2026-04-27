@@ -23,10 +23,10 @@ async function fetchPageData(): Promise<PageData> {
   ])
 
   if (uploadsResult.error) throw new Error(`Kunde inte hämta uppladdningar: ${uploadsResult.error.message}`)
-  if (commentsResult.error) throw new Error(`Kunde inte hämta kommentarer: ${commentsResult.error.message}`)
+  // Gracefully handle missing comments table — falls back to empty until migration is applied
+  const comments = commentsResult.error ? [] : (commentsResult.data as Comment[])
 
   const uploads = uploadsResult.data as DocumentUpload[]
-  const comments = commentsResult.data as Comment[]
 
   const checklistUploadsBySlug: Record<string, DocumentUpload[]> = {}
   const extraUploads: DocumentUpload[] = []
