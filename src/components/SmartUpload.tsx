@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { CHECKLIST_ITEMS } from '@/data/checklist-items'
 import { saveDocumentUpload } from '@/actions/save-document-upload'
@@ -268,8 +268,19 @@ export function SmartUpload() {
 
   const handleDragLeave = useCallback(() => setIsDragging(false), [])
 
-  const doneCount = items.filter((i) => i.status === 'done').length
-  const allDone = items.length > 0 && items.every((i) => i.status === 'done')
+  const doneItems = items.filter((i) => i.status === 'done')
+  const doneCount = doneItems.length
+  const allDone = items.length > 0 && items.every((i) => i.status === 'done' || i.status === 'error')
+
+  // Auto-close 4 seconds after all files are done
+  useEffect(() => {
+    if (!allDone || doneCount === 0) return
+    const timer = setTimeout(() => {
+      setIsOpen(false)
+      setItems([])
+    }, 4000)
+    return () => clearTimeout(timer)
+  }, [allDone, doneCount])
 
   if (!isOpen) {
     return (
@@ -393,13 +404,19 @@ export function SmartUpload() {
 
         {/* Actions */}
         {allDone ? (
-          <div className="flex items-center justify-between" style={{ padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid #BBF7D0', background: '#F0FDF4' }}>
-            <p style={{ fontSize: '0.875rem', fontWeight: 500, color: '#16A34A' }}>
-              ✓ {doneCount} {doneCount === 1 ? 'dokument sparat' : 'dokument sparade'}
+          <div style={{ borderRadius: '10px', border: '1px solid #BBF7D0', background: '#F0FDF4', padding: '1.25rem' }}>
+            <p style={{ fontSize: '1rem', fontWeight: 600, color: '#15803D', marginBottom: '0.5rem' }}>
+              Tack! {doneCount === 1 ? 'En fil lades till i listan.' : `${doneCount} filer lades till i listan.`}
             </p>
-            <button type="button" onClick={() => { setIsOpen(false); setItems([]) }} style={{ fontSize: '0.8125rem', color: '#16A34A', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>
-              Stäng
-            </button>
+            <ul style={{ margin: '0 0 0.875rem', padding: '0', listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+              {doneItems.map((item) => (
+                <li key={item.id} style={{ fontSize: '0.8125rem', color: '#16A34A', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                  <span>✓</span>
+                  <span style={{ fontWeight: 500 }}>{item.title || item.file.name}</span>
+                </li>
+              ))}
+            </ul>
+            <p style={{ fontSize: '0.75rem', color: '#4ADE80', opacity: 0.8 }}>Stängs automatiskt…</p>
           </div>
         ) : canSaveAll ? (
           <button
