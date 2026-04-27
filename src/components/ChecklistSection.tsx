@@ -1,0 +1,192 @@
+'use client'
+
+import { useState } from 'react'
+import { CHECKLIST_ITEMS, groupItemsByCategory, type ChecklistItem } from '@/data/checklist-items'
+import { InlineUploadForm } from '@/components/InlineUploadForm'
+import { CommentThread } from '@/components/CommentThread'
+import type { DocumentUpload } from '@/types/document'
+import type { Comment } from '@/types/comment'
+
+interface ChecklistSectionProps {
+  uploadsBySlug: Record<string, DocumentUpload[]>
+  commentsBySlug: Record<string, Comment[]>
+}
+
+function UploadedFile({ upload }: { upload: DocumentUpload }) {
+  return (
+    <div className="flex items-start justify-between gap-4" style={{ paddingTop: '0.75rem' }}>
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>{upload.upload_title}</p>
+        <p className="text-xs mt-0.5 line-clamp-2" style={{ color: 'var(--muted)' }}>{upload.upload_description}</p>
+        <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>
+          {upload.uploader_name} &nbsp;·&nbsp; {new Date(upload.uploaded_at).toLocaleDateString('sv-SE')}
+        </p>
+      </div>
+      <a
+        href={upload.file_url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="shrink-0 text-xs font-medium"
+        style={{ color: 'var(--accent)', textDecoration: 'underline', paddingTop: '2px' }}
+      >
+        Öppna →
+      </a>
+    </div>
+  )
+}
+
+interface ChecklistItemRowProps {
+  item: ChecklistItem
+  uploads: DocumentUpload[]
+  comments: Comment[]
+  isActive: boolean
+  onToggle: () => void
+}
+
+function ChecklistItemRow({ item, uploads, comments, isActive, onToggle }: ChecklistItemRowProps) {
+  const hasUploads = uploads.length > 0
+
+  return (
+    <div style={{ borderBottom: '1px solid var(--border)' }} className="last:border-0">
+      <div className="flex items-start gap-4 py-4">
+        {/* Status */}
+        <div style={{ marginTop: '2px', flexShrink: 0 }}>
+          {hasUploads ? (
+            <div style={{ width: '18px', height: '18px', borderRadius: '50%', background: '#16A34A', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-label="Klar">
+                <path d="M2 5l2.5 2.5L8 3" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+          ) : (
+            <div style={{ width: '18px', height: '18px', borderRadius: '50%', border: '1.5px solid var(--border)', background: 'transparent' }} aria-label="Saknas" />
+          )}
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>{item.title}</p>
+          <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>{item.description}</p>
+
+          {hasUploads && (
+            <div style={{ borderTop: '1px solid var(--border)', marginTop: '0.75rem', paddingTop: '0' }}>
+              {uploads.map((upload) => (
+                <UploadedFile key={upload.id} upload={upload} />
+              ))}
+            </div>
+          )}
+
+          <CommentThread slug={item.slug} comments={comments} />
+        </div>
+
+        {/* Action */}
+        <button
+          type="button"
+          onClick={onToggle}
+          className="shrink-0 text-xs font-medium transition-colors"
+          style={{
+            color: isActive ? 'var(--muted)' : 'var(--accent)',
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            padding: '2px 0',
+            textDecoration: 'underline',
+          }}
+        >
+          {isActive ? 'Avbryt' : hasUploads ? '+ Lägg till' : '+ Ladda upp'}
+        </button>
+      </div>
+
+      {isActive && (
+        <div style={{ paddingBottom: '1.5rem' }}>
+          <InlineUploadForm key={item.slug} slug={item.slug} onCancel={onToggle} />
+        </div>
+      )}
+    </div>
+  )
+}
+
+export function ChecklistSection({ uploadsBySlug, commentsBySlug }: ChecklistSectionProps) {
+  const [activeSlug, setActiveSlug] = useState<string | null>(null)
+
+  const uploadedCount = CHECKLIST_ITEMS.filter(
+    (item) => (uploadsBySlug[item.slug]?.length ?? 0) > 0,
+  ).length
+  const totalCount = CHECKLIST_ITEMS.length
+
+  function handleToggle(slug: string) {
+    setActiveSlug((current) => (current === slug ? null : slug))
+  }
+
+  const groupedItems = groupItemsByCategory(CHECKLIST_ITEMS)
+
+  return (
+    <section style={{ marginBottom: '3rem' }}>
+      <div className="flex items-baseline justify-between" style={{ marginBottom: '1.25rem' }}>
+        <div>
+          <h2 className="font-semibold" style={{ fontSize: '1.1rem', color: 'var(--foreground)' }}>
+            Dokumentation
+          </h2>
+          <p className="text-sm" style={{ color: 'var(--muted)', marginTop: '0.15rem' }}>
+            {uploadedCount} av {totalCount} punkter klara
+          </p>
+        </div>
+        <div
+          style={{
+            fontSize: '0.75rem',
+            fontWeight: 600,
+            color: uploadedCount === totalCount ? '#16A34A' : 'var(--muted)',
+            background: uploadedCount === totalCount ? '#F0FDF4' : 'var(--background)',
+            border: `1px solid ${uploadedCount === totalCount ? '#BBF7D0' : 'var(--border)'}`,
+            borderRadius: '6px',
+            padding: '3px 10px',
+          }}
+        >
+          {uploadedCount}/{totalCount}
+        </div>
+      </div>
+
+      <div
+        style={{
+          background: 'var(--card)',
+          border: '1px solid var(--border)',
+          borderRadius: '12px',
+          overflow: 'hidden',
+        }}
+      >
+        {groupedItems.map(([category, items], groupIdx) => (
+          <div
+            key={category}
+            style={{
+              borderTop: groupIdx > 0 ? '1px solid var(--border)' : 'none',
+            }}
+          >
+            <div
+              style={{
+                padding: '1rem 1.25rem 0',
+              }}
+            >
+              <p
+                className="text-xs font-semibold uppercase tracking-widest"
+                style={{ color: 'var(--muted)' }}
+              >
+                {category}
+              </p>
+            </div>
+            <div style={{ padding: '0 1.25rem' }}>
+              {items.map((item) => (
+                <ChecklistItemRow
+                  key={item.slug}
+                  item={item}
+                  uploads={uploadsBySlug[item.slug] ?? []}
+                  comments={commentsBySlug[item.slug] ?? []}
+                  isActive={activeSlug === item.slug}
+                  onToggle={() => handleToggle(item.slug)}
+                />
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
