@@ -4,6 +4,7 @@ import { useActionState, useState, useRef, useEffect } from 'react'
 import { uploadDocument } from '@/actions/upload-document'
 import type { UploadDocumentState, UploaderName } from '@/types/document'
 import type { AnalyzeDocumentResponse } from '@/app/api/analyze-document/route'
+import { useIdentity } from '@/hooks/useIdentity'
 
 interface InlineUploadFormProps {
   slug: string
@@ -36,6 +37,7 @@ const inputStyle: React.CSSProperties = {
 }
 
 export function InlineUploadForm({ slug, onCancel }: InlineUploadFormProps) {
+  const identity = useIdentity()
   const [state, formAction, isPending] = useActionState<UploadDocumentState | null, FormData>(
     uploadDocument,
     null,
@@ -204,29 +206,40 @@ export function InlineUploadForm({ slug, onCancel }: InlineUploadFormProps) {
           </div>
 
           <div>
-            <p style={{ fontSize: '0.75rem', fontWeight: 500, color: 'var(--muted)', marginBottom: '0.5rem' }}>
-              Uppladdare <span style={{ color: '#DC2626' }}>*</span>
-            </p>
-            <div className="flex gap-2">
-              {UPLOADERS.map((name) => (
-                <label
-                  key={name}
-                  className="flex cursor-pointer items-center gap-2"
-                  style={{
-                    padding: '5px 12px',
-                    borderRadius: '6px',
-                    border: '1px solid var(--border)',
-                    background: 'var(--card)',
-                    fontSize: '0.8125rem',
-                    color: 'var(--foreground)',
-                    cursor: 'pointer',
-                  }}
-                >
-                  <input type="radio" name="uploader_name" value={name} className="accent-slate-800" />
-                  {name}
-                </label>
-              ))}
-            </div>
+            {identity ? (
+              <>
+                <input type="hidden" name="uploader_name" value={identity} />
+                <p style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>
+                  Laddar upp som <strong style={{ color: 'var(--foreground)' }}>{identity}</strong>
+                </p>
+              </>
+            ) : (
+              <>
+                <p style={{ fontSize: '0.75rem', fontWeight: 500, color: 'var(--muted)', marginBottom: '0.5rem' }}>
+                  Uppladdare <span style={{ color: '#DC2626' }}>*</span>
+                </p>
+                <div className="flex gap-2">
+                  {UPLOADERS.map((name) => (
+                    <label
+                      key={name}
+                      className="flex cursor-pointer items-center gap-2"
+                      style={{
+                        padding: '5px 12px',
+                        borderRadius: '6px',
+                        border: '1px solid var(--border)',
+                        background: 'var(--card)',
+                        fontSize: '0.8125rem',
+                        color: 'var(--foreground)',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <input type="radio" name="uploader_name" value={name} className="accent-slate-800" />
+                      {name}
+                    </label>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
 
           {state?.error && (

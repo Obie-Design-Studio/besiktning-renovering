@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
+import { IdentityBadge } from '@/components/IdentityBadge'
 
 export const metadata: Metadata = {
   title: 'Slutbesiktning Lund 25:16',
@@ -21,9 +22,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
                 Besiktningsportal
               </span>
             </div>
-            <span className="text-xs" style={{ color: 'var(--muted)' }}>
-              Lund 25:16 · 5 maj 2026
-            </span>
+            <IdentityBadge />
           </div>
         </header>
 

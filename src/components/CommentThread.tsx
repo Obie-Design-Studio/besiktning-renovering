@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { addComment } from '@/actions/add-comment'
+import { useIdentity } from '@/hooks/useIdentity'
 import type { Comment, CommentAuthor } from '@/types/comment'
 
 interface CommentThreadProps {
@@ -55,18 +56,27 @@ function Avatar({ author }: { author: CommentAuthor }) {
 
 export function CommentThread({ slug, comments }: CommentThreadProps) {
   const router = useRouter()
+  const identity = useIdentity()
   const [isOpen, setIsOpen] = useState(false)
   const [author, setAuthor] = useState<CommentAuthor | ''>('')
   const [state, formAction, isPending] = useActionState(addComment, null)
   const formRef = useRef<HTMLFormElement>(null)
 
+  // Pre-select the author from the identity cookie
+  useEffect(() => {
+    if (identity && !author) {
+      setAuthor(identity as CommentAuthor)
+    }
+  }, [identity, author])
+
   useEffect(() => {
     if (state?.success) {
       formRef.current?.reset()
-      setAuthor('')
+      // Re-apply identity so the radio stays selected after reset
+      if (identity) setAuthor(identity as CommentAuthor)
       router.refresh()
     }
-  }, [state?.success, router])
+  }, [state?.success, router, identity])
 
   const count = comments.length
 
@@ -157,40 +167,49 @@ export function CommentThread({ slug, comments }: CommentThreadProps) {
           >
             <input type="hidden" name="section_slug" value={slug} />
 
-            {/* Author selector */}
-            <div>
-              <p style={{ fontSize: '0.6875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted)', marginBottom: '0.4rem' }}>
-                Vem skriver du som?
-              </p>
-              <div className="flex flex-wrap gap-1.5">
-                {AUTHORS.map((name) => (
-                  <label
-                    key={name}
-                    style={{
-                      padding: '3px 10px',
-                      borderRadius: '5px',
-                      border: `1px solid ${author === name ? 'var(--foreground)' : 'var(--border)'}`,
-                      background: author === name ? 'var(--foreground)' : 'transparent',
-                      fontSize: '0.75rem',
-                      color: author === name ? 'var(--card)' : 'var(--muted)',
-                      cursor: 'pointer',
-                      transition: 'all 0.12s',
-                    }}
-                  >
-                    <input
-                      type="radio"
-                      name="author_name"
-                      value={name}
-                      checked={author === name}
-                      onChange={() => setAuthor(name)}
-                      disabled={isPending}
-                      className="sr-only"
-                    />
-                    {name}
-                  </label>
-                ))}
+            {/* Author — hidden if identity is known from cookie */}
+            {identity ? (
+              <>
+                <input type="hidden" name="author_name" value={identity} />
+                <p style={{ fontSize: '0.6875rem', color: 'var(--muted)' }}>
+                  Kommenterar som <strong style={{ color: 'var(--foreground)' }}>{identity}</strong>
+                </p>
+              </>
+            ) : (
+              <div>
+                <p style={{ fontSize: '0.6875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted)', marginBottom: '0.4rem' }}>
+                  Vem skriver du som?
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {AUTHORS.map((name) => (
+                    <label
+                      key={name}
+                      style={{
+                        padding: '3px 10px',
+                        borderRadius: '5px',
+                        border: `1px solid ${author === name ? 'var(--foreground)' : 'var(--border)'}`,
+                        background: author === name ? 'var(--foreground)' : 'transparent',
+                        fontSize: '0.75rem',
+                        color: author === name ? 'var(--card)' : 'var(--muted)',
+                        cursor: 'pointer',
+                        transition: 'all 0.12s',
+                      }}
+                    >
+                      <input
+                        type="radio"
+                        name="author_name"
+                        value={name}
+                        checked={author === name}
+                        onChange={() => setAuthor(name)}
+                        disabled={isPending}
+                        className="sr-only"
+                      />
+                      {name}
+                    </label>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Message */}
             <textarea

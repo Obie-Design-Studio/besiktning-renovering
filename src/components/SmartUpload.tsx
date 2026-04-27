@@ -4,6 +4,7 @@ import { useState, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { CHECKLIST_ITEMS } from '@/data/checklist-items'
 import { saveDocumentUpload } from '@/actions/save-document-upload'
+import { useIdentity } from '@/hooks/useIdentity'
 import type { AnalyzeDocumentResponse } from '@/app/api/analyze-document/route'
 import type { UploaderName } from '@/types/document'
 
@@ -42,11 +43,12 @@ function slugLabel(slug: string): string {
 
 interface FileCardProps {
   item: FileReviewItem
+  identity: UploaderName | null
   onChange: (id: string, patch: Partial<FileReviewItem>) => void
   onRemove: (id: string) => void
 }
 
-function FileCard({ item, onChange, onRemove }: FileCardProps) {
+function FileCard({ item, identity, onChange, onRemove }: FileCardProps) {
   const isDone = item.status === 'done'
   const isError = item.status === 'error'
   const isSaving = item.status === 'saving'
@@ -146,15 +148,21 @@ function FileCard({ item, onChange, onRemove }: FileCardProps) {
             />
           </div>
 
-          <div className="flex gap-2">
-            {UPLOADERS.map((name) => (
-              <label key={name} className="flex cursor-pointer items-center gap-2"
-                style={{ padding: '4px 10px', borderRadius: '6px', border: `1px solid ${item.uploaderName === name ? 'var(--foreground)' : 'var(--border)'}`, background: item.uploaderName === name ? 'var(--foreground)' : 'var(--card)', fontSize: '0.75rem', color: item.uploaderName === name ? 'var(--card)' : 'var(--muted)', cursor: 'pointer', transition: 'all 0.15s' }}>
-                <input type="radio" name={`uploader-${item.id}`} value={name} checked={item.uploaderName === name} onChange={() => onChange(item.id, { uploaderName: name })} disabled={isSaving} className="sr-only" />
-                {name}
-              </label>
-            ))}
-          </div>
+          {identity ? (
+            <p style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>
+              Laddar upp som <strong style={{ color: 'var(--foreground)' }}>{identity}</strong>
+            </p>
+          ) : (
+            <div className="flex gap-2">
+              {UPLOADERS.map((name) => (
+                <label key={name} className="flex cursor-pointer items-center gap-2"
+                  style={{ padding: '4px 10px', borderRadius: '6px', border: `1px solid ${item.uploaderName === name ? 'var(--foreground)' : 'var(--border)'}`, background: item.uploaderName === name ? 'var(--foreground)' : 'var(--card)', fontSize: '0.75rem', color: item.uploaderName === name ? 'var(--card)' : 'var(--muted)', cursor: 'pointer', transition: 'all 0.15s' }}>
+                  <input type="radio" name={`uploader-${item.id}`} value={name} checked={item.uploaderName === name} onChange={() => onChange(item.id, { uploaderName: name })} disabled={isSaving} className="sr-only" />
+                  {name}
+                </label>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -162,6 +170,7 @@ function FileCard({ item, onChange, onRemove }: FileCardProps) {
 }
 
 export function SmartUpload() {
+  const identity = useIdentity()
   const [isOpen, setIsOpen] = useState(false)
   const [items, setItems] = useState<FileReviewItem[]>([])
   const [isDragging, setIsDragging] = useState(false)
@@ -188,7 +197,8 @@ export function SmartUpload() {
       title: '',
       description: '',
       selectedSlug: 'ovrig',
-      uploaderName: '',
+      // Pre-fill from identity cookie when available
+      uploaderName: (identity as UploaderName) ?? '',
     }))
 
     setItems((prev) => [...prev, ...newItems])
@@ -224,7 +234,8 @@ export function SmartUpload() {
 
   const readyItems = items.filter((i) => i.status === 'ready')
   const allReady = readyItems.length > 0
-  const canSaveAll = allReady && readyItems.every((i) => i.uploaderName !== '')
+  // When identity is known from cookie, uploader is implicit — no manual selection needed
+  const canSaveAll = allReady && (identity !== null || readyItems.every((i) => i.uploaderName !== ''))
 
   async function handleSaveAll() {
     setIsSavingAll(true)
@@ -234,7 +245,7 @@ export function SmartUpload() {
         slug: item.selectedSlug,
         uploadTitle: item.title,
         uploadDescription: item.description,
-        uploaderName: item.uploaderName,
+        uploaderName: identity ?? item.uploaderName,
         file: item.file,
       })
       if (result.success) {
@@ -361,6 +372,7 @@ export function SmartUpload() {
               <FileCard
                 key={item.id}
                 item={item}
+                identity={identity as UploaderName | null}
                 onChange={updateItem}
                 onRemove={removeItem}
               />
