@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { CHECKLIST_ITEMS, groupItemsByCategory, type ChecklistItem } from '@/data/checklist-items'
 import { InlineUploadForm } from '@/components/InlineUploadForm'
 import { CommentThread } from '@/components/CommentThread'
+import { DeleteButton } from '@/components/DeleteButton'
 import type { DocumentUpload } from '@/types/document'
 import type { Comment } from '@/types/comment'
 
@@ -36,15 +37,18 @@ function UploadedFile({
             {new Date(upload.uploaded_at).toLocaleDateString('sv-SE')}
           </p>
         </div>
-        <a
-          href={upload.file_url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="shrink-0 text-xs font-medium"
-          style={{ color: 'var(--accent)', textDecoration: 'underline', paddingTop: '2px' }}
-        >
-          Öppna →
-        </a>
+        <div className="flex items-center gap-2 shrink-0" style={{ paddingTop: '2px' }}>
+          <a
+            href={upload.file_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs font-medium"
+            style={{ color: 'var(--accent)', textDecoration: 'underline' }}
+          >
+            Öppna →
+          </a>
+          <DeleteButton documentId={upload.id} documentTitle={upload.upload_title} />
+        </div>
       </div>
       <CommentThread
         slug={`file:${upload.id}`}
