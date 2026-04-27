@@ -4,7 +4,7 @@ import { useActionState, useState, useRef, useEffect } from 'react'
 import { uploadDocument } from '@/actions/upload-document'
 import type { UploadDocumentState, UploaderName } from '@/types/document'
 import type { AnalyzeDocumentResponse } from '@/app/api/analyze-document/route'
-import { useIdentity } from '@/hooks/useIdentity'
+import { useIdentityContext } from '@/context/IdentityContext'
 
 interface InlineUploadFormProps {
   slug: string
@@ -37,7 +37,7 @@ const inputStyle: React.CSSProperties = {
 }
 
 export function InlineUploadForm({ slug, onCancel }: InlineUploadFormProps) {
-  const identity = useIdentity()
+  const { identity, setFallbackIdentity } = useIdentityContext()
   const [state, formAction, isPending] = useActionState<UploadDocumentState | null, FormData>(
     uploadDocument,
     null,
@@ -233,7 +233,13 @@ export function InlineUploadForm({ slug, onCancel }: InlineUploadFormProps) {
                         cursor: 'pointer',
                       }}
                     >
-                      <input type="radio" name="uploader_name" value={name} className="accent-slate-800" />
+                      <input
+                    type="radio"
+                    name="uploader_name"
+                    value={name}
+                    className="accent-slate-800"
+                    onChange={() => setFallbackIdentity(name as 'Tobias' | 'Palmens byggservice')}
+                  />
                       {name}
                     </label>
                   ))}

@@ -3,7 +3,7 @@
 import { useActionState, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { addComment } from '@/actions/add-comment'
-import { useIdentity } from '@/hooks/useIdentity'
+import { useIdentityContext } from '@/context/IdentityContext'
 import type { Comment, CommentAuthor } from '@/types/comment'
 
 interface CommentThreadProps {
@@ -56,7 +56,7 @@ function Avatar({ author }: { author: CommentAuthor }) {
 
 export function CommentThread({ slug, comments }: CommentThreadProps) {
   const router = useRouter()
-  const identity = useIdentity()
+  const { identity, setFallbackIdentity } = useIdentityContext()
   const [isOpen, setIsOpen] = useState(false)
   const [author, setAuthor] = useState<CommentAuthor | ''>('')
   const [state, formAction, isPending] = useActionState(addComment, null)
@@ -200,7 +200,10 @@ export function CommentThread({ slug, comments }: CommentThreadProps) {
                         name="author_name"
                         value={name}
                         checked={author === name}
-                        onChange={() => setAuthor(name)}
+                        onChange={() => {
+                          setAuthor(name)
+                          setFallbackIdentity(name)
+                        }}
                         disabled={isPending}
                         className="sr-only"
                       />

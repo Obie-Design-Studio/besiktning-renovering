@@ -1,6 +1,6 @@
 'use client'
 
-import { useIdentity } from '@/hooks/useIdentity'
+import { useIdentityContext } from '@/context/IdentityContext'
 
 const DISPLAY: Record<string, string> = {
   Tobias: 'Tobias Johansson',
@@ -9,7 +9,7 @@ const DISPLAY: Record<string, string> = {
 }
 
 export function IdentityBadge() {
-  const identity = useIdentity()
+  const { identity } = useIdentityContext()
   if (!identity) return null
 
   return (
