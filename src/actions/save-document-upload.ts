@@ -2,6 +2,7 @@
 
 import { createSupabaseServer } from '@/lib/supabase'
 import { CHECKLIST_ITEMS } from '@/data/checklist-items'
+import { hashFile } from '@/lib/hash-file'
 import type { UploaderName } from '@/types/document'
 
 const STORAGE_BUCKET = 'inspection-pdfs'
@@ -38,6 +39,20 @@ export async function saveDocumentUpload(input: SaveDocumentInput): Promise<Save
 
   const supabase = createSupabaseServer()
 
+  // Duplicate detection — check content hash before uploading to storage
+  let contentHash: string | null = null
+  if (hasFile && file) {
+    contentHash = await hashFile(file)
+    const { data: existing } = await supabase
+      .from('document_uploads')
+      .select('upload_title')
+      .eq('content_hash', contentHash)
+      .maybeSingle()
+    if (existing) {
+      return { success: false, error: `Den här filen finns redan uppladdad som "${existing.upload_title}".` }
+    }
+  }
+
   let fileUrl: string
   let fileName: string
   const fileSource: 'upload' | 'link' = hasFile ? 'upload' : 'link'
@@ -68,6 +83,7 @@ export async function saveDocumentUpload(input: SaveDocumentInput): Promise<Save
     upload_title: uploadTitle,
     upload_description: uploadDescription,
     uploader_name: uploaderName,
+    content_hash: contentHash,
   })
 
   if (dbError) return { success: false, error: `Kunde inte spara: ${dbError.message}` }

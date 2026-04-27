@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation'
 import { createSupabaseServer } from '@/lib/supabase'
 import { CHECKLIST_ITEMS } from '@/data/checklist-items'
+import { hashFile } from '@/lib/hash-file'
 import type { UploadDocumentState, UploaderName } from '@/types/document'
 
 const STORAGE_BUCKET = 'inspection-pdfs'
@@ -34,6 +35,20 @@ export async function uploadDocument(
 
   const supabase = createSupabaseServer()
 
+  // Duplicate detection — check content hash before uploading to storage
+  let contentHash: string | null = null
+  if (hasFile && file) {
+    contentHash = await hashFile(file)
+    const { data: existing } = await supabase
+      .from('document_uploads')
+      .select('upload_title')
+      .eq('content_hash', contentHash)
+      .maybeSingle()
+    if (existing) {
+      return { error: `Den här filen finns redan uppladdad som "${existing.upload_title}".` }
+    }
+  }
+
   let fileUrl: string
   let fileName: string
   const fileSource: 'upload' | 'link' = hasFile ? 'upload' : 'link'
@@ -64,6 +79,7 @@ export async function uploadDocument(
     upload_title: uploadTitle,
     upload_description: uploadDescription,
     uploader_name: uploaderName,
+    content_hash: contentHash,
   })
 
   if (dbError) return { error: `Kunde inte spara: ${dbError.message}` }
