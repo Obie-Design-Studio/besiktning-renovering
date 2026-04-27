@@ -45,7 +45,7 @@ function UploadedFile({
             className="text-xs font-medium"
             style={{ color: 'var(--accent)', textDecoration: 'underline' }}
           >
-            Öppna →
+            Läs dokument →
           </a>
           <DeleteButton documentId={upload.id} documentTitle={upload.upload_title} />
         </div>
