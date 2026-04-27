@@ -56,7 +56,7 @@ export default async function HomePage() {
     <>
       <InfoSection uploadButton={<SmartUpload />} />
       <ChecklistSection uploadsBySlug={checklistUploadsBySlug} commentsBySlug={commentsBySlug} />
-      <ExtraDocsSection uploads={extraUploads} comments={commentsBySlug[EXTRA_SLUG] ?? []} />
+      <ExtraDocsSection uploads={extraUploads} comments={commentsBySlug[EXTRA_SLUG] ?? []} commentsBySlug={commentsBySlug} />
     </>
   )
 }

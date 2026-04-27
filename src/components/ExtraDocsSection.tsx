@@ -9,32 +9,49 @@ import type { Comment } from '@/types/comment'
 interface ExtraDocsSectionProps {
   uploads: DocumentUpload[]
   comments: Comment[]
+  commentsBySlug: Record<string, Comment[]>
 }
 
-function ExtraFile({ upload }: { upload: DocumentUpload }) {
+function ExtraFile({
+  upload,
+  fileComments,
+}: {
+  upload: DocumentUpload
+  fileComments: Comment[]
+}) {
   return (
-    <div className="flex items-start justify-between gap-4 py-3" style={{ borderTop: '1px solid var(--border)' }}>
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>{upload.upload_title}</p>
-        <p className="text-xs mt-0.5 line-clamp-2" style={{ color: 'var(--muted)' }}>{upload.upload_description}</p>
-        <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>
-          {upload.uploader_name} &nbsp;·&nbsp; {new Date(upload.uploaded_at).toLocaleDateString('sv-SE')}
-        </p>
+    <div style={{ borderTop: '1px solid var(--border)', paddingTop: '0.875rem', marginTop: '0' }}>
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>
+            {upload.upload_title}
+          </p>
+          {upload.upload_description && (
+            <p className="text-xs mt-1" style={{ color: 'var(--muted)', lineHeight: 1.55 }}>
+              {upload.upload_description}
+            </p>
+          )}
+          <p className="text-xs mt-1.5" style={{ color: 'var(--muted)' }}>
+            {upload.uploader_name} &nbsp;·&nbsp;{' '}
+            {new Date(upload.uploaded_at).toLocaleDateString('sv-SE')}
+          </p>
+        </div>
+        <a
+          href={upload.file_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="shrink-0 text-xs font-medium"
+          style={{ color: 'var(--accent)', textDecoration: 'underline', paddingTop: '2px' }}
+        >
+          Öppna →
+        </a>
       </div>
-      <a
-        href={upload.file_url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="shrink-0 text-xs font-medium"
-        style={{ color: 'var(--accent)', textDecoration: 'underline', paddingTop: '2px' }}
-      >
-        Öppna →
-      </a>
+      <CommentThread slug={`file:${upload.id}`} comments={fileComments} />
     </div>
   )
 }
 
-export function ExtraDocsSection({ uploads, comments }: ExtraDocsSectionProps) {
+export function ExtraDocsSection({ uploads, comments, commentsBySlug }: ExtraDocsSectionProps) {
   const [isFormOpen, setIsFormOpen] = useState(false)
 
   return (
@@ -70,7 +87,11 @@ export function ExtraDocsSection({ uploads, comments }: ExtraDocsSectionProps) {
         {uploads.length > 0 ? (
           <div>
             {uploads.map((upload) => (
-              <ExtraFile key={upload.id} upload={upload} />
+              <ExtraFile
+                key={upload.id}
+                upload={upload}
+                fileComments={commentsBySlug[`file:${upload.id}`] ?? []}
+              />
             ))}
           </div>
         ) : (
@@ -87,7 +108,8 @@ export function ExtraDocsSection({ uploads, comments }: ExtraDocsSectionProps) {
           </div>
         )}
 
-        <div style={{ marginTop: uploads.length > 0 || isFormOpen ? '0.75rem' : '0', borderTop: uploads.length > 0 || isFormOpen ? '1px solid var(--border)' : 'none', paddingTop: uploads.length > 0 || isFormOpen ? '0.75rem' : '0' }}>
+        {/* Section-level comment thread */}
+        <div style={{ borderTop: uploads.length > 0 || isFormOpen ? '1px solid var(--border)' : 'none', marginTop: uploads.length > 0 || isFormOpen ? '0.875rem' : '0', paddingTop: uploads.length > 0 || isFormOpen ? '0.875rem' : '0' }}>
           <CommentThread slug="ovrig" comments={comments} />
         </div>
       </div>

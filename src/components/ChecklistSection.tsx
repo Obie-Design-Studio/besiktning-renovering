@@ -12,25 +12,44 @@ interface ChecklistSectionProps {
   commentsBySlug: Record<string, Comment[]>
 }
 
-function UploadedFile({ upload }: { upload: DocumentUpload }) {
+function UploadedFile({
+  upload,
+  comments,
+}: {
+  upload: DocumentUpload
+  comments: Comment[]
+}) {
   return (
-    <div className="flex items-start justify-between gap-4" style={{ paddingTop: '0.75rem' }}>
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>{upload.upload_title}</p>
-        <p className="text-xs mt-0.5 line-clamp-2" style={{ color: 'var(--muted)' }}>{upload.upload_description}</p>
-        <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>
-          {upload.uploader_name} &nbsp;·&nbsp; {new Date(upload.uploaded_at).toLocaleDateString('sv-SE')}
-        </p>
+    <div style={{ paddingTop: '0.875rem' }}>
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>
+            {upload.upload_title}
+          </p>
+          {upload.upload_description && (
+            <p className="text-xs mt-1" style={{ color: 'var(--muted)', lineHeight: 1.55 }}>
+              {upload.upload_description}
+            </p>
+          )}
+          <p className="text-xs mt-1.5" style={{ color: 'var(--muted)' }}>
+            {upload.uploader_name} &nbsp;·&nbsp;{' '}
+            {new Date(upload.uploaded_at).toLocaleDateString('sv-SE')}
+          </p>
+        </div>
+        <a
+          href={upload.file_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="shrink-0 text-xs font-medium"
+          style={{ color: 'var(--accent)', textDecoration: 'underline', paddingTop: '2px' }}
+        >
+          Öppna →
+        </a>
       </div>
-      <a
-        href={upload.file_url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="shrink-0 text-xs font-medium"
-        style={{ color: 'var(--accent)', textDecoration: 'underline', paddingTop: '2px' }}
-      >
-        Öppna →
-      </a>
+      <CommentThread
+        slug={`file:${upload.id}`}
+        comments={comments}
+      />
     </div>
   )
 }
@@ -38,18 +57,19 @@ function UploadedFile({ upload }: { upload: DocumentUpload }) {
 interface ChecklistItemRowProps {
   item: ChecklistItem
   uploads: DocumentUpload[]
-  comments: Comment[]
+  commentsBySlug: Record<string, Comment[]>
   isActive: boolean
   onToggle: () => void
 }
 
-function ChecklistItemRow({ item, uploads, comments, isActive, onToggle }: ChecklistItemRowProps) {
+function ChecklistItemRow({ item, uploads, commentsBySlug, isActive, onToggle }: ChecklistItemRowProps) {
   const hasUploads = uploads.length > 0
+  const sectionComments = commentsBySlug[item.slug] ?? []
 
   return (
     <div style={{ borderBottom: '1px solid var(--border)' }} className="last:border-0">
       <div className="flex items-start gap-4 py-4">
-        {/* Status */}
+        {/* Status dot */}
         <div style={{ marginTop: '2px', flexShrink: 0 }}>
           {hasUploads ? (
             <div style={{ width: '18px', height: '18px', borderRadius: '50%', background: '#16A34A', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -67,18 +87,24 @@ function ChecklistItemRow({ item, uploads, comments, isActive, onToggle }: Check
           <p className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>{item.title}</p>
           <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>{item.description}</p>
 
+          {/* Uploaded files — each with its own comment thread */}
           {hasUploads && (
-            <div style={{ borderTop: '1px solid var(--border)', marginTop: '0.75rem', paddingTop: '0' }}>
+            <div style={{ borderTop: '1px solid var(--border)', marginTop: '0.75rem' }}>
               {uploads.map((upload) => (
-                <UploadedFile key={upload.id} upload={upload} />
+                <UploadedFile
+                  key={upload.id}
+                  upload={upload}
+                  comments={commentsBySlug[`file:${upload.id}`] ?? []}
+                />
               ))}
             </div>
           )}
 
-          <CommentThread slug={item.slug} comments={comments} />
+          {/* Section-level comment thread (for asking about missing docs, etc.) */}
+          <CommentThread slug={item.slug} comments={sectionComments} />
         </div>
 
-        {/* Action */}
+        {/* Upload action */}
         <button
           type="button"
           onClick={onToggle}
@@ -156,19 +182,10 @@ export function ChecklistSection({ uploadsBySlug, commentsBySlug }: ChecklistSec
         {groupedItems.map(([category, items], groupIdx) => (
           <div
             key={category}
-            style={{
-              borderTop: groupIdx > 0 ? '1px solid var(--border)' : 'none',
-            }}
+            style={{ borderTop: groupIdx > 0 ? '1px solid var(--border)' : 'none' }}
           >
-            <div
-              style={{
-                padding: '1rem 1.25rem 0',
-              }}
-            >
-              <p
-                className="text-xs font-semibold uppercase tracking-widest"
-                style={{ color: 'var(--muted)' }}
-              >
+            <div style={{ padding: '1rem 1.25rem 0' }}>
+              <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted)' }}>
                 {category}
               </p>
             </div>
@@ -178,7 +195,7 @@ export function ChecklistSection({ uploadsBySlug, commentsBySlug }: ChecklistSec
                   key={item.slug}
                   item={item}
                   uploads={uploadsBySlug[item.slug] ?? []}
-                  comments={commentsBySlug[item.slug] ?? []}
+                  commentsBySlug={commentsBySlug}
                   isActive={activeSlug === item.slug}
                   onToggle={() => handleToggle(item.slug)}
                 />
