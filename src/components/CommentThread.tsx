@@ -78,11 +78,43 @@ export function CommentThread({ slug, comments }: CommentThreadProps) {
     }
   }, [state?.success, router, identity])
 
-  const count = comments.length
-
   return (
     <div style={{ marginTop: '0.875rem' }}>
-      {/* Toggle */}
+
+      {/* Existing comments — always visible */}
+      {comments.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem', marginBottom: '0.75rem' }}>
+          {comments.map((comment) => (
+            <div key={comment.id} className="flex items-start gap-2.5">
+              <Avatar author={comment.author_name} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="flex items-baseline gap-2" style={{ marginBottom: '2px' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--foreground)' }}>
+                    {comment.author_name}
+                  </span>
+                  <span style={{ fontSize: '0.6875rem', color: 'var(--muted)' }}>
+                    {formatRelative(comment.created_at)}
+                  </span>
+                </div>
+                <p
+                  style={{
+                    fontSize: '0.8125rem',
+                    color: 'var(--foreground)',
+                    lineHeight: 1.5,
+                    margin: 0,
+                    whiteSpace: 'pre-wrap',
+                    wordBreak: 'break-word',
+                  }}
+                >
+                  {comment.message}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Toggle — only controls the form */}
       <button
         type="button"
         onClick={() => setIsOpen((v) => !v)}
@@ -109,48 +141,11 @@ export function CommentThread({ slug, comments }: CommentThreadProps) {
         >
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
         </svg>
-        {isOpen
-          ? 'Dölj'
-          : count > 0
-            ? `${count} ${count === 1 ? 'kommentar' : 'kommentarer'}`
-            : 'Kommentera'}
+        {isOpen ? 'Avbryt' : 'Kommentera'}
       </button>
 
       {isOpen && (
-        <div style={{ marginTop: '0.875rem' }}>
-          {/* Existing comments */}
-          {comments.length > 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem', marginBottom: '1rem' }}>
-              {comments.map((comment) => (
-                <div key={comment.id} className="flex items-start gap-2.5">
-                  <Avatar author={comment.author_name} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div className="flex items-baseline gap-2" style={{ marginBottom: '2px' }}>
-                      <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--foreground)' }}>
-                        {comment.author_name}
-                      </span>
-                      <span style={{ fontSize: '0.6875rem', color: 'var(--muted)' }}>
-                        {formatRelative(comment.created_at)}
-                      </span>
-                    </div>
-                    <p
-                      style={{
-                        fontSize: '0.8125rem',
-                        color: 'var(--foreground)',
-                        lineHeight: 1.5,
-                        margin: 0,
-                        whiteSpace: 'pre-wrap',
-                        wordBreak: 'break-word',
-                      }}
-                    >
-                      {comment.message}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
+        <div style={{ marginTop: '0.75rem' }}>
           {/* New comment form */}
           <form
             ref={formRef}
