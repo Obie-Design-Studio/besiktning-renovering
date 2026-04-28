@@ -429,6 +429,7 @@ export function SmartUpload() {
                 type="file"
                 accept=".pdf,application/pdf"
                 multiple
+                onClick={(e) => e.stopPropagation()}
                 onChange={(e) => handleFiles(e.target.files)}
                 className="sr-only"
               />
