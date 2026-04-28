@@ -122,7 +122,19 @@ export function InfoSection({ uploadButton }: InfoSectionProps) {
 
       <DeadlineBanner />
 
-      {uploadButton}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+        {uploadButton}
+        <a
+          href="/api/download-all"
+          download="besiktningsdokument.zip"
+          className="flex items-center justify-center gap-2 rounded-[10px] border border-[var(--border)] bg-[var(--background)] px-4 py-2.5 text-[0.8125rem] font-medium text-[var(--muted)] no-underline transition-colors hover:border-[var(--foreground)] hover:text-[var(--foreground)]"
+        >
+          <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+          </svg>
+          Ladda ner alla dokument (ZIP)
+        </a>
+      </div>
 
       <div className="grid gap-4 sm:grid-cols-3" style={{ marginTop: '1.5rem' }}>
         <PartyCard
