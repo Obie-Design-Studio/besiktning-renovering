@@ -12,7 +12,8 @@ type FileStatus = 'analyzing' | 'ready' | 'saving' | 'done' | 'error'
 
 interface FileReviewItem {
   id: string
-  file: File
+  file: File | null
+  linkUrl?: string
   status: FileStatus
   title: string
   description: string
@@ -67,24 +68,21 @@ function FileCard({ item, identity, onChange, onRemove, onSetFallbackIdentity }:
         transition: 'opacity 0.2s',
       }}
     >
-      {/* File name + remove */}
+      {/* File name / URL + remove */}
       <div className="mb-3 flex items-start justify-between gap-3">
         <div className="flex items-center gap-2 min-w-0">
-          <svg
-            className="h-4 w-4 shrink-0 text-gray-400"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth={1.5}
-            stroke="currentColor"
-            aria-hidden="true"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"
-            />
-          </svg>
-          <span className="truncate text-sm font-medium text-gray-700">{item.file.name}</span>
+          {item.file ? (
+            <svg className="h-4 w-4 shrink-0 text-gray-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+            </svg>
+          ) : (
+            <svg className="h-4 w-4 shrink-0 text-gray-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244" />
+            </svg>
+          )}
+          <span className="truncate text-sm font-medium text-gray-700">
+            {item.file ? item.file.name : item.linkUrl}
+          </span>
         </div>
         {!isDone && !isSaving && (
           <button
@@ -176,6 +174,7 @@ export function SmartUpload() {
   const [items, setItems] = useState<FileReviewItem[]>([])
   const [isDragging, setIsDragging] = useState(false)
   const [isSavingAll, setIsSavingAll] = useState(false)
+  const [urlInput, setUrlInput] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
 
@@ -185,6 +184,23 @@ export function SmartUpload() {
 
   function removeItem(id: string) {
     setItems((prev) => prev.filter((item) => item.id !== id))
+  }
+
+  function addLinkItem(url: string) {
+    const trimmed = url.trim()
+    if (!trimmed) return
+    const newItem: FileReviewItem = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      file: null,
+      linkUrl: trimmed,
+      status: 'ready',
+      title: '',
+      description: '',
+      selectedSlug: 'ovrig',
+      uploaderName: (identity as UploaderName) ?? '',
+    }
+    setItems((prev) => [...prev, newItem])
+    setUrlInput('')
   }
 
   async function processFiles(files: File[]) {
@@ -198,7 +214,6 @@ export function SmartUpload() {
       title: '',
       description: '',
       selectedSlug: 'ovrig',
-      // Pre-fill from identity cookie when available
       uploaderName: (identity as UploaderName) ?? '',
     }))
 
@@ -206,7 +221,7 @@ export function SmartUpload() {
 
     for (const item of newItems) {
       try {
-        const result = await analyzeFile(item.file)
+        const result = await analyzeFile(item.file!)
         updateItem(item.id, {
           status: 'ready',
           title: result.title,
@@ -235,9 +250,7 @@ export function SmartUpload() {
 
   const readyItems = items.filter((i) => i.status === 'ready')
   const analyzingItems = items.filter((i) => i.status === 'analyzing')
-  // Only offer save once every file has finished analyzing (ready or error)
   const allReady = readyItems.length > 0 && analyzingItems.length === 0
-  // When identity is known from cookie, uploader is implicit — no manual selection needed
   const canSaveAll = allReady && (identity !== null || readyItems.every((i) => i.uploaderName !== ''))
 
   async function handleSaveAll() {
@@ -250,6 +263,7 @@ export function SmartUpload() {
         uploadDescription: item.description,
         uploaderName: identity ?? item.uploaderName,
         file: item.file,
+        linkUrl: item.linkUrl,
       })
       if (result.success) {
         updateItem(item.id, { status: 'done' })
@@ -346,37 +360,84 @@ export function SmartUpload() {
       <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         {/* Drop zone */}
         {!allDone && (
-          <div
-            onDrop={handleDrop}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onClick={() => fileInputRef.current?.click()}
-            className="flex cursor-pointer flex-col items-center justify-center gap-2"
-            style={{
-              border: `2px dashed ${isDragging ? 'var(--accent)' : 'var(--border)'}`,
-              borderRadius: '10px',
-              padding: '2.5rem 1.5rem',
-              background: isDragging ? 'rgba(28,63,94,0.04)' : 'var(--background)',
-              transition: 'border-color 0.15s, background 0.15s',
-            }}
-          >
-            <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" strokeWidth={1.2} stroke="currentColor" style={{ color: 'var(--muted)' }} aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
-            </svg>
-            <p className="text-sm" style={{ color: 'var(--muted)' }}>
-              Dra hit eller{' '}
-              <span style={{ color: 'var(--accent)', textDecoration: 'underline', cursor: 'pointer' }}>välj filer</span>
-            </p>
-            <p className="text-xs" style={{ color: 'var(--muted)', opacity: 0.6 }}>Flera filer kan väljas samtidigt</p>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".pdf,application/pdf"
-              multiple
-              onChange={(e) => handleFiles(e.target.files)}
-              className="sr-only"
-            />
-          </div>
+          <>
+            <div
+              onDrop={handleDrop}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onClick={() => fileInputRef.current?.click()}
+              className="flex cursor-pointer flex-col items-center justify-center gap-2"
+              style={{
+                border: `2px dashed ${isDragging ? 'var(--accent)' : 'var(--border)'}`,
+                borderRadius: '10px',
+                padding: '2rem 1.5rem',
+                background: isDragging ? 'rgba(28,63,94,0.04)' : 'var(--background)',
+                transition: 'border-color 0.15s, background 0.15s',
+              }}
+            >
+              <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" strokeWidth={1.2} stroke="currentColor" style={{ color: 'var(--muted)' }} aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
+              </svg>
+              <p className="text-sm" style={{ color: 'var(--muted)' }}>
+                Dra hit eller{' '}
+                <span style={{ color: 'var(--accent)', textDecoration: 'underline', cursor: 'pointer' }}>välj PDF-filer</span>
+              </p>
+              <p className="text-xs" style={{ color: 'var(--muted)', opacity: 0.6 }}>Flera filer kan väljas samtidigt</p>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,application/pdf"
+                multiple
+                onChange={(e) => handleFiles(e.target.files)}
+                className="sr-only"
+              />
+            </div>
+
+            {/* URL input */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <div style={{ flex: 1, height: '1px', background: 'var(--border)' }} />
+              <span style={{ fontSize: '0.75rem', color: 'var(--muted)', flexShrink: 0 }}>eller klistra in en URL</span>
+              <div style={{ flex: 1, height: '1px', background: 'var(--border)' }} />
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <input
+                type="url"
+                value={urlInput}
+                onChange={(e) => setUrlInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addLinkItem(urlInput) } }}
+                placeholder="https://exempel.se/dokument.pdf"
+                style={{
+                  flex: 1,
+                  borderRadius: '8px',
+                  border: '1px solid var(--border)',
+                  background: 'var(--background)',
+                  padding: '0.5rem 0.75rem',
+                  fontSize: '0.875rem',
+                  color: 'var(--foreground)',
+                  outline: 'none',
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => addLinkItem(urlInput)}
+                disabled={!urlInput.trim()}
+                style={{
+                  padding: '0.5rem 1rem',
+                  borderRadius: '8px',
+                  background: urlInput.trim() ? 'var(--foreground)' : 'var(--border)',
+                  color: urlInput.trim() ? 'var(--card)' : 'var(--muted)',
+                  border: 'none',
+                  fontSize: '0.8125rem',
+                  fontWeight: 600,
+                  cursor: urlInput.trim() ? 'pointer' : 'not-allowed',
+                  flexShrink: 0,
+                  transition: 'background 0.15s',
+                }}
+              >
+                Lägg till
+              </button>
+            </div>
+          </>
         )}
 
         {/* File review cards */}
