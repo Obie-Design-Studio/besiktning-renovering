@@ -32,6 +32,9 @@ interface FileReviewItem {
   selectedSlug: string
   uploaderName: UploaderName | ''
   errorMessage?: string
+  // Set once the file has been uploaded to Supabase Storage (before save confirmation)
+  storagePath?: string
+  contentHash?: string
 }
 
 const UPLOADERS: UploaderName[] = ['Tobias', 'Palmens byggservice']
@@ -40,24 +43,6 @@ const ALL_SLUG_OPTIONS = [
   ...CHECKLIST_ITEMS.map((item) => ({ slug: item.slug, label: item.title })),
   { slug: 'ovrig', label: 'Övrig dokumentation' },
 ]
-
-async function analyzeFile(file: File): Promise<AnalyzeDocumentResponse> {
-  const body = new FormData()
-  body.append('file', file)
-  const res = await fetch('/api/analyze-document', { method: 'POST', body })
-
-  // Server may return plain text for oversized requests (413) — handle before JSON.parse
-  let json: unknown
-  try {
-    json = await res.json()
-  } catch {
-    if (res.status === 413) throw new Error('Filen är för stor för AI-analys. Fyll i titel och beskrivning manuellt.')
-    throw new Error(`Serverfel (HTTP ${res.status}) — fyll i titel och beskrivning manuellt.`)
-  }
-
-  if (!res.ok) throw new Error((json as { error?: string }).error ?? 'Okänt fel')
-  return json as AnalyzeDocumentResponse
-}
 
 async function analyzeUrl(url: string): Promise<AnalyzeDocumentResponse> {
   const body = new FormData()
@@ -348,25 +333,65 @@ export function SmartUpload() {
       uploaderName: (identity as UploaderName) ?? 'Tobias',
     }))
 
-    setSaveError(null) // clear any error from a previous save attempt
+    setSaveError(null)
     setItems((prev) => [...prev, ...newItems])
 
     for (const item of newItems) {
+      const fallbackTitle = item.file!.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ')
+
+      // Compute hash for duplicate detection (non-fatal if it fails)
+      let hash: string | undefined
       try {
-        const result = await analyzeFile(item.file!)
+        hash = await computeFileHash(item.file!)
+      } catch { /* skip */ }
+
+      // Upload directly to Supabase Storage so we can send a URL to the AI endpoint.
+      // This bypasses the Vercel body-size limit entirely — files of any size work.
+      const urlResult = await createUploadUrl(item.file!.name)
+      if ('error' in urlResult) {
         updateItem(item.id, {
           status: 'ready',
-          title: result.title,
+          title: fallbackTitle,
+          errorMessage: 'Kunde inte förbereda uppladdning. Fyll i titel manuellt.',
+        })
+        continue
+      }
+
+      const supabase = createSupabaseBrowser()
+      const { error: uploadError } = await supabase.storage
+        .from(STORAGE_BUCKET)
+        .uploadToSignedUrl(urlResult.path, urlResult.token, item.file!, {
+          contentType: item.file!.type,
+        })
+
+      if (uploadError) {
+        updateItem(item.id, {
+          status: 'ready',
+          title: fallbackTitle,
+          errorMessage: `Uppladdning misslyckades: ${uploadError.message}`,
+        })
+        continue
+      }
+
+      // Analyze by passing the Supabase Storage URL — server fetches it, no size limit
+      const { data: publicUrlData } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(urlResult.path)
+      try {
+        const result = await analyzeUrl(publicUrlData.publicUrl)
+        updateItem(item.id, {
+          status: 'ready',
+          title: result.title || fallbackTitle,
           description: result.description,
           selectedSlug: result.suggested_slug,
+          storagePath: urlResult.path,
+          contentHash: hash,
         })
       } catch (err) {
-        // Analysis failed (e.g. file too large) — still allow the user to fill in details and save
         updateItem(item.id, {
           status: 'ready',
-          title: '',
-          description: '',
+          title: fallbackTitle,
           errorMessage: err instanceof Error ? err.message : 'AI-analys misslyckades — fyll i titel manuellt.',
+          storagePath: urlResult.path,
+          contentHash: hash,
         })
       }
     }
@@ -400,48 +425,16 @@ export function SmartUpload() {
         updateItem(item.id, { status: 'saving' })
 
         if (item.file) {
-          // --- Direct browser-to-Supabase upload (bypasses Vercel body limit) ---
-          let hash: string
-          try {
-            hash = await computeFileHash(item.file)
-          } catch {
-            updateItem(item.id, { status: 'error', errorMessage: 'Kunde inte beräkna fil-hash.' })
-            setSaveError('Kunde inte beräkna fil-hash.')
-            continue
-          }
-
-          // Get a short-lived signed upload URL from the server
-          const urlResult = await createUploadUrl(item.file.name)
-          if ('error' in urlResult) {
-            updateItem(item.id, { status: 'error', errorMessage: urlResult.error })
-            setSaveError(urlResult.error)
-            continue
-          }
-
-          // Upload the file directly from the browser to Supabase Storage
-          const supabase = createSupabaseBrowser()
-          const { error: uploadError } = await supabase.storage
-            .from(STORAGE_BUCKET)
-            .uploadToSignedUrl(urlResult.path, urlResult.token, item.file, {
-              contentType: item.file.type,
-            })
-
-          if (uploadError) {
-            const msg = `Uppladdning misslyckades: ${uploadError.message}`
-            updateItem(item.id, { status: 'error', errorMessage: msg })
-            setSaveError(msg)
-            continue
-          }
-
-          // Server action only saves the metadata row — no file bytes crossing Vercel
+          // File was already uploaded to Supabase Storage during the analysis phase —
+          // just save the metadata row (no bytes through Vercel)
           const result = await saveDocumentUpload({
             slug: item.selectedSlug,
             uploadTitle: item.title,
             uploadDescription: item.description,
             uploaderName: identity ?? item.uploaderName,
-            storagePath: urlResult.path,
+            storagePath: item.storagePath,
             fileName: item.file.name,
-            contentHash: hash,
+            contentHash: item.contentHash,
           })
 
           if (result.success) {
