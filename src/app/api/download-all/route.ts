@@ -1,4 +1,3 @@
-import { NextResponse } from 'next/server'
 import JSZip from 'jszip'
 import { createSupabaseServer } from '@/lib/supabase'
 import { CHECKLIST_ITEMS } from '@/data/checklist-items'
@@ -23,11 +22,11 @@ export async function GET() {
     .order('created_at', { ascending: true })
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return Response.json({ error: error.message }, { status: 500 })
   }
 
   if (!docs || docs.length === 0) {
-    return NextResponse.json({ error: 'Inga dokument uppladdade ännu.' }, { status: 404 })
+    return Response.json({ error: 'Inga dokument uppladdade ännu.' }, { status: 404 })
   }
 
   const zip = new JSZip()
@@ -66,13 +65,13 @@ export async function GET() {
     zip.file('_lankar.txt', linkLines.join('\n'))
   }
 
-  const zipBuffer = await zip.generateAsync({
-    type: 'nodebuffer',
+  const zipBytes = await zip.generateAsync({
+    type: 'arraybuffer',
     compression: 'DEFLATE',
     compressionOptions: { level: 6 },
   })
 
-  return new NextResponse(zipBuffer, {
+  return new Response(zipBytes, {
     status: 200,
     headers: {
       'Content-Type': 'application/zip',
