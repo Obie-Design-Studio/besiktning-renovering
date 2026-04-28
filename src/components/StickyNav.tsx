@@ -15,7 +15,11 @@ export const NAV_ITEMS = [
   { id: 'nav-ovrig', label: 'Övrig dokumentation' },
 ]
 
-export function StickyNav() {
+interface StickyNavProps {
+  counts?: Record<string, number>
+}
+
+export function StickyNav({ counts = {} }: StickyNavProps) {
   const [activeId, setActiveId] = useState<string>('nav-info')
 
   useEffect(() => {
@@ -64,6 +68,7 @@ export function StickyNav() {
     >
       {NAV_ITEMS.map(({ id, label }) => {
         const isActive = activeId === id
+        const count = counts[id] ?? 0
         return (
           <button
             key={id}
@@ -90,7 +95,7 @@ export function StickyNav() {
               height: '5px',
               borderRadius: '50%',
               flexShrink: 0,
-              background: isActive ? 'rgba(255,255,255,0.8)' : 'var(--border)',
+              background: isActive ? 'rgba(255,255,255,0.8)' : count > 0 ? 'var(--accent)' : 'var(--border)',
               transition: 'background 0.15s',
             }} />
             <span style={{
@@ -99,9 +104,25 @@ export function StickyNav() {
               color: isActive ? '#ffffff' : 'var(--muted)',
               transition: 'color 0.15s',
               letterSpacing: '0.01em',
+              flex: 1,
             }}>
               {label}
             </span>
+            {count > 0 && (
+              <span style={{
+                fontSize: '0.625rem',
+                fontWeight: 600,
+                lineHeight: 1,
+                padding: '2px 5px',
+                borderRadius: '20px',
+                background: isActive ? 'rgba(255,255,255,0.2)' : 'var(--border)',
+                color: isActive ? '#ffffff' : 'var(--muted)',
+                transition: 'background 0.15s, color 0.15s',
+                flexShrink: 0,
+              }}>
+                {count}
+              </span>
+            )}
           </button>
         )
       })}

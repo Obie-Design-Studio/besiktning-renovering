@@ -4,7 +4,8 @@ import { InfoSection } from '@/components/InfoSection'
 import { SmartUpload } from '@/components/SmartUpload'
 import { ChecklistSection } from '@/components/ChecklistSection'
 import { ExtraDocsSection } from '@/components/ExtraDocsSection'
-import { StickyNav } from '@/components/StickyNav'
+import { StickyNav, NAV_ITEMS } from '@/components/StickyNav'
+import { CHECKLIST_ITEMS, CATEGORY_NAV_ID } from '@/data/checklist-items'
 import type { DocumentUpload } from '@/types/document'
 import type { Comment } from '@/types/comment'
 
@@ -14,6 +15,7 @@ interface PageData {
   checklistUploadsBySlug: Record<string, DocumentUpload[]>
   extraUploads: DocumentUpload[]
   commentsBySlug: Record<string, Comment[]>
+  navCounts: Record<string, number>
 }
 
 async function fetchPageData(): Promise<PageData> {
@@ -49,15 +51,25 @@ async function fetchPageData(): Promise<PageData> {
     commentsBySlug[comment.section_slug] = [...existing, comment]
   }
 
-  return { checklistUploadsBySlug, extraUploads, commentsBySlug }
+  // Compute per-nav-item upload counts for the sticky navigation
+  const navCounts: Record<string, number> = {}
+  for (const navItem of NAV_ITEMS) navCounts[navItem.id] = 0
+
+  for (const item of CHECKLIST_ITEMS) {
+    const navId = CATEGORY_NAV_ID[item.category]
+    if (navId) navCounts[navId] = (navCounts[navId] ?? 0) + (checklistUploadsBySlug[item.slug]?.length ?? 0)
+  }
+  navCounts['nav-ovrig'] = extraUploads.length
+
+  return { checklistUploadsBySlug, extraUploads, commentsBySlug, navCounts }
 }
 
 export default async function HomePage() {
-  const { checklistUploadsBySlug, extraUploads, commentsBySlug } = await fetchPageData()
+  const { checklistUploadsBySlug, extraUploads, commentsBySlug, navCounts } = await fetchPageData()
 
   return (
     <>
-      <StickyNav />
+      <StickyNav counts={navCounts} />
       <div id="nav-info"><InfoSection uploadButton={<SmartUpload />} /></div>
       <ChecklistSection uploadsBySlug={checklistUploadsBySlug} commentsBySlug={commentsBySlug} />
       <div id="nav-ovrig"><ExtraDocsSection uploads={extraUploads} comments={commentsBySlug[EXTRA_SLUG] ?? []} commentsBySlug={commentsBySlug} /></div>
