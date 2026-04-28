@@ -4,9 +4,21 @@ import { useState, useRef, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { CHECKLIST_ITEMS } from '@/data/checklist-items'
 import { saveDocumentUpload } from '@/actions/save-document-upload'
+import { createUploadUrl } from '@/actions/create-upload-url'
+import { createSupabaseBrowser } from '@/lib/supabase'
 import { useIdentityContext } from '@/context/IdentityContext'
 import type { AnalyzeDocumentResponse } from '@/app/api/analyze-document/route'
 import type { UploaderName } from '@/types/document'
+
+const STORAGE_BUCKET = 'inspection-pdfs'
+
+async function computeFileHash(file: File): Promise<string> {
+  const buffer = await file.arrayBuffer()
+  const hashBuffer = await crypto.subtle.digest('SHA-256', buffer)
+  return Array.from(new Uint8Array(hashBuffer))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('')
+}
 
 type FileStatus = 'analyzing' | 'ready' | 'saving' | 'done' | 'error'
 
@@ -386,20 +398,76 @@ export function SmartUpload() {
     try {
       for (const item of snapshot) {
         updateItem(item.id, { status: 'saving' })
-        const result = await saveDocumentUpload({
-          slug: item.selectedSlug,
-          uploadTitle: item.title,
-          uploadDescription: item.description,
-          uploaderName: identity ?? item.uploaderName,
-          file: item.file,
-          linkUrl: item.linkUrl,
-        })
-        if (result.success) {
-          updateItem(item.id, { status: 'done' })
-          anySaved = true
+
+        if (item.file) {
+          // --- Direct browser-to-Supabase upload (bypasses Vercel body limit) ---
+          let hash: string
+          try {
+            hash = await computeFileHash(item.file)
+          } catch {
+            updateItem(item.id, { status: 'error', errorMessage: 'Kunde inte beräkna fil-hash.' })
+            setSaveError('Kunde inte beräkna fil-hash.')
+            continue
+          }
+
+          // Get a short-lived signed upload URL from the server
+          const urlResult = await createUploadUrl(item.file.name)
+          if ('error' in urlResult) {
+            updateItem(item.id, { status: 'error', errorMessage: urlResult.error })
+            setSaveError(urlResult.error)
+            continue
+          }
+
+          // Upload the file directly from the browser to Supabase Storage
+          const supabase = createSupabaseBrowser()
+          const { error: uploadError } = await supabase.storage
+            .from(STORAGE_BUCKET)
+            .uploadToSignedUrl(urlResult.path, urlResult.token, item.file, {
+              contentType: item.file.type,
+            })
+
+          if (uploadError) {
+            const msg = `Uppladdning misslyckades: ${uploadError.message}`
+            updateItem(item.id, { status: 'error', errorMessage: msg })
+            setSaveError(msg)
+            continue
+          }
+
+          // Server action only saves the metadata row — no file bytes crossing Vercel
+          const result = await saveDocumentUpload({
+            slug: item.selectedSlug,
+            uploadTitle: item.title,
+            uploadDescription: item.description,
+            uploaderName: identity ?? item.uploaderName,
+            storagePath: urlResult.path,
+            fileName: item.file.name,
+            contentHash: hash,
+          })
+
+          if (result.success) {
+            updateItem(item.id, { status: 'done' })
+            anySaved = true
+          } else {
+            updateItem(item.id, { status: 'error', errorMessage: result.error ?? 'Okänt fel.' })
+            setSaveError(result.error ?? 'Något gick fel. Försök igen.')
+          }
         } else {
-          updateItem(item.id, { status: 'error', errorMessage: result.error ?? 'Okänt fel.' })
-          setSaveError(result.error ?? 'Något gick fel. Försök igen.')
+          // --- URL import: server fetches and stores the PDF ---
+          const result = await saveDocumentUpload({
+            slug: item.selectedSlug,
+            uploadTitle: item.title,
+            uploadDescription: item.description,
+            uploaderName: identity ?? item.uploaderName,
+            linkUrl: item.linkUrl,
+          })
+
+          if (result.success) {
+            updateItem(item.id, { status: 'done' })
+            anySaved = true
+          } else {
+            updateItem(item.id, { status: 'error', errorMessage: result.error ?? 'Okänt fel.' })
+            setSaveError(result.error ?? 'Något gick fel. Försök igen.')
+          }
         }
       }
     } catch (err) {

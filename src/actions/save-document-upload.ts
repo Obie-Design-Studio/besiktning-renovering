@@ -13,8 +13,15 @@ export interface SaveDocumentInput {
   uploadTitle: string
   uploadDescription: string
   uploaderName: string
-  file?: File | null
+  // Preferred path: file was already uploaded directly to storage by the browser.
+  // Only the metadata needs to pass through the server action.
+  storagePath?: string
+  fileName?: string
+  contentHash?: string
+  // URL import: server fetches and stores the PDF
   linkUrl?: string
+  // Legacy: raw file bytes through the server action (kept for compatibility)
+  file?: File | null
 }
 
 export interface SaveDocumentResult {
@@ -23,7 +30,7 @@ export interface SaveDocumentResult {
 }
 
 export async function saveDocumentUpload(input: SaveDocumentInput): Promise<SaveDocumentResult> {
-  const { slug, uploadTitle, uploadDescription, uploaderName, file, linkUrl } = input
+  const { slug, uploadTitle, uploadDescription, uploaderName, file, linkUrl, storagePath, fileName, contentHash } = input
 
   const isValidSlug = slug === 'ovrig' || CHECKLIST_ITEMS.some((item) => item.slug === slug)
   if (!isValidSlug) return { success: false, error: 'Ogiltigt dokumentalternativ.' }
@@ -33,11 +40,42 @@ export async function saveDocumentUpload(input: SaveDocumentInput): Promise<Save
     return { success: false, error: 'Välj vem som laddar upp.' }
   }
 
+  const hasPreUploaded = Boolean(storagePath?.trim())
   const hasFile = Boolean(file && file.size > 0)
   const hasLink = Boolean(linkUrl?.trim())
-  if (!hasFile && !hasLink) return { success: false, error: 'Fil eller länk krävs.' }
+  if (!hasPreUploaded && !hasFile && !hasLink) return { success: false, error: 'Fil eller länk krävs.' }
 
   const supabase = createSupabaseServer()
+
+  // Fast path: file was already uploaded directly to Supabase Storage by the browser.
+  // The server only needs to check for duplicates and insert the metadata row.
+  if (hasPreUploaded) {
+    if (contentHash) {
+      const { data: existing } = await supabase
+        .from('document_uploads')
+        .select('upload_title')
+        .eq('content_hash', contentHash)
+        .maybeSingle()
+      if (existing) {
+        return { success: false, error: `Den här filen finns redan uppladdad som "${existing.upload_title}".` }
+      }
+    }
+
+    const { data: urlData } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(storagePath!)
+    const { error: dbError } = await supabase.from('document_uploads').insert({
+      document_item_slug: slug,
+      file_url: urlData.publicUrl,
+      file_name: fileName ?? storagePath,
+      file_source: 'upload',
+      upload_title: uploadTitle,
+      upload_description: uploadDescription,
+      uploader_name: uploaderName,
+      content_hash: contentHash ?? null,
+    })
+
+    if (dbError) return { success: false, error: `Kunde inte spara: ${dbError.message}` }
+    return { success: true }
+  }
 
   // Duplicate detection — check content hash before uploading to storage
   let contentHash: string | null = null
