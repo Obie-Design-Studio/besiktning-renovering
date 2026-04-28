@@ -157,7 +157,7 @@ export function ChecklistSection({ uploadsBySlug, commentsBySlug }: ChecklistSec
             Dokumentation
           </h2>
           <p className="text-sm" style={{ color: 'var(--muted)', marginTop: '0.15rem' }}>
-            {uploadedCount} av {totalCount} punkter klara
+            Handlingar inlämnade i {uploadedCount} av {totalCount} områden
           </p>
         </div>
         <div
