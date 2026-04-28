@@ -412,6 +412,9 @@ export function SmartUpload() {
         borderRadius: '12px',
         overflow: 'hidden',
         marginBottom: '0',
+        display: 'flex',
+        flexDirection: 'column',
+        maxHeight: '85vh',
       }}
     >
       {/* Header */}
@@ -436,7 +439,7 @@ export function SmartUpload() {
         )}
       </div>
 
-      <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem', overflowY: 'auto', flex: 1 }}>
         {/* Drop zone */}
         {!allDone && (
           <>
@@ -551,59 +554,65 @@ export function SmartUpload() {
           </p>
         )}
 
-        {/* Save error banner */}
-        {saveError && !allDone && (
-          <div style={{ borderRadius: '8px', border: '1px solid #FCA5A5', background: '#FEF2F2', padding: '0.875rem 1rem', display: 'flex', gap: '0.625rem' }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: '1px' }} aria-hidden="true">
-              <circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>
-            </svg>
-            <div>
-              <p style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#B91C1C', marginBottom: '2px' }}>Uppladdningen misslyckades</p>
-              <p style={{ fontSize: '0.8125rem', color: '#DC2626' }}>{saveError}</p>
-            </div>
-          </div>
-        )}
-
-        {/* Actions */}
-        {allDone ? (
-          <div style={{ borderRadius: '10px', border: '1px solid #BBF7D0', background: '#F0FDF4', padding: '1.25rem' }}>
-            <p style={{ fontSize: '1rem', fontWeight: 600, color: '#15803D', marginBottom: '0.5rem' }}>
-              Tack! {doneCount === 1 ? 'En fil lades till i listan.' : `${doneCount} filer lades till i listan.`}
-            </p>
-            <ul style={{ margin: '0 0 0.875rem', padding: '0', listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-              {doneItems.map((item) => (
-                <li key={item.id} style={{ fontSize: '0.8125rem', color: '#16A34A', display: 'flex', alignItems: 'baseline', gap: '0.375rem' }}>
-                  <span>✓</span>
-                  <span>
-                    <span style={{ fontWeight: 500 }}>{item.title || item.file?.name || item.linkUrl}</span>
-                    <span style={{ color: '#4ADE80', fontWeight: 400 }}> — {slugLabel(item.selectedSlug)}</span>
-                  </span>
-                </li>
-              ))}
-            </ul>
-            <p style={{ fontSize: '0.75rem', color: '#4ADE80', opacity: 0.8 }}>Stängs automatiskt…</p>
-          </div>
-        ) : canSaveAll ? (
-          <button
-            type="button"
-            onClick={handleSaveAll}
-            disabled={isSavingAll}
-            style={{ width: '100%', background: 'var(--foreground)', color: 'var(--card)', border: 'none', borderRadius: '8px', padding: '0.75rem', fontSize: '0.875rem', fontWeight: 600, cursor: isSavingAll ? 'not-allowed' : 'pointer', opacity: isSavingAll ? 0.6 : 1 }}
-          >
-            {isSavingAll ? (
-              <span className="flex items-center justify-center gap-2">
-                <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
-                Sparar…
-              </span>
-            ) : `Bekräfta och spara ${readyItems.length} ${readyItems.length === 1 ? 'dokument' : 'dokument'}`}
-          </button>
-        ) : allReady ? (
-          <p style={{ textAlign: 'center', fontSize: '0.8125rem', color: 'var(--muted)' }}>Välj uppladdare på varje dokument för att fortsätta</p>
-        ) : null}
       </div>
+
+      {/* Sticky footer — always visible */}
+      {(canSaveAll || allDone || allReady || saveError) && (
+        <div style={{ borderTop: '1px solid var(--border)', padding: '1rem 1.5rem', background: 'var(--card)', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+
+          {saveError && !allDone && (
+            <div style={{ borderRadius: '8px', border: '1px solid #FCA5A5', background: '#FEF2F2', padding: '0.75rem 1rem', display: 'flex', gap: '0.625rem' }}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: '1px' }} aria-hidden="true">
+                <circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>
+              </svg>
+              <div>
+                <p style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#B91C1C', marginBottom: '2px' }}>Uppladdningen misslyckades</p>
+                <p style={{ fontSize: '0.8125rem', color: '#DC2626' }}>{saveError}</p>
+              </div>
+            </div>
+          )}
+
+          {allDone ? (
+            <div style={{ borderRadius: '10px', border: '1px solid #BBF7D0', background: '#F0FDF4', padding: '1rem 1.25rem' }}>
+              <p style={{ fontSize: '0.9375rem', fontWeight: 600, color: '#15803D', marginBottom: '0.4rem' }}>
+                Tack! {doneCount === 1 ? 'En fil lades till i listan.' : `${doneCount} filer lades till i listan.`}
+              </p>
+              <ul style={{ margin: '0 0 0.5rem', padding: '0', listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                {doneItems.map((item) => (
+                  <li key={item.id} style={{ fontSize: '0.8125rem', color: '#16A34A', display: 'flex', alignItems: 'baseline', gap: '0.375rem' }}>
+                    <span>✓</span>
+                    <span>
+                      <span style={{ fontWeight: 500 }}>{item.title || item.file?.name || item.linkUrl}</span>
+                      <span style={{ color: '#4ADE80', fontWeight: 400 }}> — {slugLabel(item.selectedSlug)}</span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <p style={{ fontSize: '0.75rem', color: '#4ADE80', opacity: 0.8 }}>Stängs automatiskt…</p>
+            </div>
+          ) : canSaveAll ? (
+            <button
+              type="button"
+              onClick={handleSaveAll}
+              disabled={isSavingAll}
+              style={{ width: '100%', background: 'var(--foreground)', color: 'var(--card)', border: 'none', borderRadius: '8px', padding: '0.875rem', fontSize: '0.9375rem', fontWeight: 700, cursor: isSavingAll ? 'not-allowed' : 'pointer', opacity: isSavingAll ? 0.6 : 1, letterSpacing: '-0.01em' }}
+            >
+              {isSavingAll ? (
+                <span className="flex items-center justify-center gap-2">
+                  <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  Sparar…
+                </span>
+              ) : `Spara ${readyItems.length === 1 ? 'dokument' : `${readyItems.length} dokument`}`}
+            </button>
+          ) : allReady ? (
+            <p style={{ textAlign: 'center', fontSize: '0.8125rem', color: 'var(--muted)' }}>Välj uppladdare på varje dokument för att fortsätta</p>
+          ) : null}
+
+        </div>
+      )}
     </div>
   )
 }
