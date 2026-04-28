@@ -82,11 +82,11 @@ export function InfoSection({ uploadButton }: InfoSectionProps) {
         <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted)', marginBottom: '0.4rem' }}>
           Slutbesiktning
         </p>
-        <h1 className="font-bold" style={{ fontSize: '1.75rem', color: 'var(--foreground)', lineHeight: 1.2, marginBottom: '0.5rem' }}>
-          Lund 25:16
+        <h1 className="font-bold" style={{ fontSize: '1.75rem', color: 'var(--foreground)', lineHeight: 1.2, marginBottom: '0.35rem' }}>
+          Schlyters Väg 4
         </h1>
         <p className="text-sm" style={{ color: 'var(--muted)' }}>
-          Schlyters Väg 4, 224 60 Lund &nbsp;·&nbsp; Tisdag 5 maj 2026, kl 09:00 &nbsp;·&nbsp; HF17
+          Lund 25:16 &nbsp;·&nbsp; 224 60 Lund &nbsp;·&nbsp; Tisdag 5 maj 2026, kl 09:00 &nbsp;·&nbsp; HF17
         </p>
       </div>
 
