@@ -38,6 +38,15 @@ async function analyzeFile(file: File): Promise<AnalyzeDocumentResponse> {
   return json as AnalyzeDocumentResponse
 }
 
+async function analyzeUrl(url: string): Promise<AnalyzeDocumentResponse> {
+  const body = new FormData()
+  body.append('linkUrl', url)
+  const res = await fetch('/api/analyze-document', { method: 'POST', body })
+  const json = await res.json()
+  if (!res.ok) throw new Error((json as { error?: string }).error ?? 'Okänt fel')
+  return json as AnalyzeDocumentResponse
+}
+
 function slugLabel(slug: string): string {
   return ALL_SLUG_OPTIONS.find((o) => o.slug === slug)?.label ?? slug
 }
@@ -279,17 +288,13 @@ export function SmartUpload() {
       selectedSlug: 'ovrig',
       uploaderName: (identity as UploaderName) ?? 'Tobias',
     }
+    setSaveError(null) // clear any error from a previous save attempt
     setItems((prev) => [...prev, newItem])
     setUrlInput('')
 
-    // Fetch the PDF and run it through AI analysis, just like file uploads
+    // Let the server fetch and analyze the PDF (avoids CORS restrictions in the browser)
     try {
-      const res = await fetch(trimmed)
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      const blob = await res.blob()
-      const fileName = fallbackTitle || 'dokument'
-      const file = new File([blob], `${fileName}.pdf`, { type: 'application/pdf' })
-      const result = await analyzeFile(file)
+      const result = await analyzeUrl(trimmed)
       updateItem(id, {
         status: 'ready',
         title: result.title || fallbackTitle,
@@ -297,7 +302,7 @@ export function SmartUpload() {
         selectedSlug: result.suggested_slug,
       })
     } catch {
-      // CORS block, network error, or AI failure — fall back to manual entry
+      // Network error or AI failure — fall back to manual entry with URL-derived title
       updateItem(id, { status: 'ready' })
     }
   }
@@ -316,6 +321,7 @@ export function SmartUpload() {
       uploaderName: (identity as UploaderName) ?? 'Tobias',
     }))
 
+    setSaveError(null) // clear any error from a previous save attempt
     setItems((prev) => [...prev, ...newItems])
 
     for (const item of newItems) {

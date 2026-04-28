@@ -44,14 +44,36 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'Kunde inte läsa formulärdata.' }, { status: 400 })
   }
 
+  // Support both direct file uploads and a URL that the server fetches
+  // (URLs are fetched server-side to avoid CORS restrictions in the browser)
+  let buffer: Buffer
   const file = formData.get('file') as File | null
-  if (!file || file.size === 0) {
-    return NextResponse.json({ error: 'Ingen fil bifogad.' }, { status: 400 })
+  const linkUrl = formData.get('linkUrl') as string | null
+
+  if (file && file.size > 0) {
+    buffer = Buffer.from(await file.arrayBuffer())
+  } else if (linkUrl?.trim()) {
+    try {
+      const res = await fetch(linkUrl.trim())
+      if (!res.ok) {
+        return NextResponse.json(
+          { error: `Kunde inte hämta PDF:en från länken (HTTP ${res.status}).` },
+          { status: 502 },
+        )
+      }
+      buffer = Buffer.from(await res.arrayBuffer())
+    } catch {
+      return NextResponse.json(
+        { error: 'Kunde inte nå länken. Kontrollera att URL:en är korrekt och tillgänglig.' },
+        { status: 502 },
+      )
+    }
+  } else {
+    return NextResponse.json({ error: 'Ingen fil eller länk angiven.' }, { status: 400 })
   }
 
   try {
     const ai = new GoogleGenAI({ apiKey })
-    const buffer = Buffer.from(await file.arrayBuffer())
     const base64 = buffer.toString('base64')
 
     const response = await ai.models.generateContent({
