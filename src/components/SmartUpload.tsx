@@ -57,22 +57,36 @@ function FileCard({ item, identity, onChange, onRemove, onSetFallbackIdentity }:
   const isAnalyzing = item.status === 'analyzing'
   const isReady = item.status === 'ready'
 
+  const borderColor = isDone ? '#BBF7D0' : isError ? '#FCA5A5' : isReady ? '#F59E0B' : 'var(--border)'
+  const leftAccent = isReady ? '#F59E0B' : isDone ? '#16A34A' : 'transparent'
+
   return (
     <div
       style={{
         borderRadius: '10px',
-        border: `1px solid ${isDone ? '#BBF7D0' : isError ? '#FCA5A5' : 'var(--border)'}`,
-        background: 'var(--card)',
-        padding: '1rem 1.25rem',
-        opacity: isDone ? 0.75 : 1,
+        border: `1px solid ${borderColor}`,
+        borderLeft: `3px solid ${leftAccent}`,
+        background: isReady ? '#FFFBEB' : 'var(--card)',
+        overflow: 'hidden',
+        opacity: isDone ? 0.7 : 1,
         transition: 'opacity 0.2s',
       }}
     >
-      {/* File name / URL + remove */}
-      <div className="mb-3 flex items-start justify-between gap-3">
+      {/* Card header — file name */}
+      <div
+        style={{
+          padding: '0.75rem 1.25rem',
+          borderBottom: isReady || isSaving ? `1px solid ${isReady ? '#FDE68A' : 'var(--border)'}` : 'none',
+          background: isReady ? '#FEF3C7' : isDone ? '#F0FDF4' : 'transparent',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '0.75rem',
+        }}
+      >
         <div className="flex items-center gap-2 min-w-0">
           {item.file ? (
-            <svg className="h-4 w-4 shrink-0 text-gray-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
+            <svg className="h-4 w-4 shrink-0" style={{ color: isReady ? '#D97706' : '#9CA3AF' }} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
             </svg>
           ) : (
@@ -80,21 +94,34 @@ function FileCard({ item, identity, onChange, onRemove, onSetFallbackIdentity }:
               <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244" />
             </svg>
           )}
-          <span className="truncate text-sm font-medium text-gray-700">
-            {item.file ? item.file.name : item.linkUrl}
-          </span>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold" style={{ color: isReady ? '#92400E' : 'var(--foreground)' }}>
+              {item.file ? item.file.name : item.linkUrl}
+            </p>
+            {isReady && (
+              <p style={{ fontSize: '0.7rem', color: '#B45309', marginTop: '1px' }}>
+                Granska och redigera nedan innan du sparar
+              </p>
+            )}
+          </div>
         </div>
         {!isDone && !isSaving && (
           <button
             type="button"
             onClick={() => onRemove(item.id)}
-            className="shrink-0 text-gray-300 hover:text-gray-500"
+            className="shrink-0"
+            style={{ color: '#D1D5DB', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.875rem' }}
+            onMouseEnter={e => e.currentTarget.style.color = '#6B7280'}
+            onMouseLeave={e => e.currentTarget.style.color = '#D1D5DB'}
             aria-label="Ta bort"
           >
             ✕
           </button>
         )}
       </div>
+
+      {/* Body */}
+      <div style={{ padding: '0.875rem 1.25rem' }}>
 
       {/* Analyzing */}
       {isAnalyzing && (
@@ -203,6 +230,8 @@ function FileCard({ item, identity, onChange, onRemove, onSetFallbackIdentity }:
           </div>
         </div>
       )}
+
+      </div>{/* end body */}
     </div>
   )
 }
@@ -485,6 +514,14 @@ export function SmartUpload() {
         {/* File review cards */}
         {items.length > 0 && (
           <div className="space-y-3">
+          {readyItems.length > 0 && analyzingItems.length === 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0' }}>
+              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#F59E0B', flexShrink: 0 }} />
+              <p style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#92400E' }}>
+                {readyItems.length === 1 ? 'En fil redo — granska och redigera innan du sparar' : `${readyItems.length} filer redo — granska och redigera innan du sparar`}
+              </p>
+            </div>
+          )}
             {items.map((item) => (
               <FileCard
                 key={item.id}
