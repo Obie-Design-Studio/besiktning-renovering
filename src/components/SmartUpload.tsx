@@ -337,21 +337,17 @@ export function SmartUpload() {
     setIsSavingAll(true)
     const snapshot = readyItems // capture before async work begins
     let anySaved = false
-    console.log('[SmartUpload] handleSaveAll started, items:', snapshot.length, 'identity:', identity)
     try {
       for (const item of snapshot) {
         updateItem(item.id, { status: 'saving' })
-        const payload = {
+        const result = await saveDocumentUpload({
           slug: item.selectedSlug,
           uploadTitle: item.title,
           uploadDescription: item.description,
           uploaderName: identity ?? item.uploaderName,
           file: item.file,
           linkUrl: item.linkUrl,
-        }
-        console.log('[SmartUpload] calling saveDocumentUpload with:', { slug: payload.slug, uploadTitle: payload.uploadTitle, uploaderName: payload.uploaderName, hasFile: !!payload.file, linkUrl: payload.linkUrl })
-        const result = await saveDocumentUpload(payload)
-        console.log('[SmartUpload] saveDocumentUpload result:', result)
+        })
         if (result.success) {
           updateItem(item.id, { status: 'done' })
           anySaved = true
@@ -362,12 +358,10 @@ export function SmartUpload() {
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Oväntat fel vid uppladdning.'
-      console.error('[SmartUpload] exception during save:', err)
       setSaveError(msg)
     } finally {
       setIsSavingAll(false)
     }
-    console.log('[SmartUpload] save complete, anySaved:', anySaved)
     // Refresh immediately so data is ready when panel closes
     if (anySaved) router.refresh()
   }
