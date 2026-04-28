@@ -324,6 +324,7 @@ export function SmartUpload() {
     setSaveError(null)
     setIsSavingAll(true)
     const snapshot = readyItems // capture before async work begins
+    let anySaved = false
     try {
       for (const item of snapshot) {
         updateItem(item.id, { status: 'saving' })
@@ -337,6 +338,7 @@ export function SmartUpload() {
         })
         if (result.success) {
           updateItem(item.id, { status: 'done' })
+          anySaved = true
         } else {
           updateItem(item.id, { status: 'error', errorMessage: result.error ?? 'Okänt fel.' })
           setSaveError(result.error ?? 'Något gick fel. Försök igen.')
@@ -348,7 +350,8 @@ export function SmartUpload() {
     } finally {
       setIsSavingAll(false)
     }
-    // router.refresh() is called after the confirmation panel auto-closes (see useEffect below)
+    // Refresh immediately so data is ready when panel closes
+    if (anySaved) router.refresh()
   }
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -362,13 +365,12 @@ export function SmartUpload() {
   const doneCount = doneItems.length
   const allDone = items.length > 0 && items.every((i) => i.status === 'done' || i.status === 'error')
 
-  // Auto-close 4 seconds after all files are done, then refresh the page
+  // Auto-close 4 seconds after all files are done (refresh already fired in handleSaveAll)
   useEffect(() => {
     if (!allDone || doneCount === 0) return
     const timer = setTimeout(() => {
       setIsOpen(false)
       setItems([])
-      router.refresh()
     }, 4000)
     return () => clearTimeout(timer)
   }, [allDone, doneCount])
