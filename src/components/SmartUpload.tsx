@@ -272,7 +272,8 @@ export function SmartUpload() {
       }
     }
     setIsSavingAll(false)
-    router.refresh()
+    // router.refresh() is intentionally NOT called here — it's called after the
+    // confirmation panel auto-closes so the success message isn't interrupted.
   }
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -286,12 +287,13 @@ export function SmartUpload() {
   const doneCount = doneItems.length
   const allDone = items.length > 0 && items.every((i) => i.status === 'done' || i.status === 'error')
 
-  // Auto-close 4 seconds after all files are done
+  // Auto-close 4 seconds after all files are done, then refresh the page
   useEffect(() => {
     if (!allDone || doneCount === 0) return
     const timer = setTimeout(() => {
       setIsOpen(false)
       setItems([])
+      router.refresh()
     }, 4000)
     return () => clearTimeout(timer)
   }, [allDone, doneCount])
@@ -486,7 +488,15 @@ export function SmartUpload() {
             disabled={isSavingAll}
             style={{ width: '100%', background: 'var(--foreground)', color: 'var(--card)', border: 'none', borderRadius: '8px', padding: '0.75rem', fontSize: '0.875rem', fontWeight: 600, cursor: isSavingAll ? 'not-allowed' : 'pointer', opacity: isSavingAll ? 0.6 : 1 }}
           >
-            {isSavingAll ? 'Sparar...' : `Bekräfta och spara ${readyItems.length} ${readyItems.length === 1 ? 'dokument' : 'dokument'}`}
+            {isSavingAll ? (
+              <span className="flex items-center justify-center gap-2">
+                <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                Sparar…
+              </span>
+            ) : `Bekräfta och spara ${readyItems.length} ${readyItems.length === 1 ? 'dokument' : 'dokument'}`}
           </button>
         ) : allReady ? (
           <p style={{ textAlign: 'center', fontSize: '0.8125rem', color: 'var(--muted)' }}>Välj uppladdare på varje dokument för att fortsätta</p>
