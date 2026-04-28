@@ -15,5 +15,10 @@ export function createSupabaseServer(): SupabaseClient {
         'Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in .env.local.',
     )
   }
-  return createClient(supabaseUrl, supabaseServiceRoleKey)
+  return createClient(supabaseUrl, supabaseServiceRoleKey, {
+    global: {
+      // Disable Next.js fetch cache so the page always reads fresh data from Supabase
+      fetch: (url, opts) => fetch(url as RequestInfo, { ...opts, cache: 'no-store' }),
+    },
+  })
 }

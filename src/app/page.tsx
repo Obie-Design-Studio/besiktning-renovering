@@ -1,3 +1,4 @@
+import { unstable_noStore as noStore } from 'next/cache'
 import { createSupabaseServer } from '@/lib/supabase'
 import { InfoSection } from '@/components/InfoSection'
 import { SmartUpload } from '@/components/SmartUpload'
@@ -16,6 +17,7 @@ interface PageData {
 }
 
 async function fetchPageData(): Promise<PageData> {
+  noStore() // always fetch fresh data — never serve cached Supabase results
   const supabase = createSupabaseServer()
 
   const [uploadsResult, commentsResult] = await Promise.all([
