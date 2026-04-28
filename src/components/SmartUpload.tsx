@@ -57,50 +57,47 @@ function FileCard({ item, identity, onChange, onRemove, onSetFallbackIdentity }:
   const isAnalyzing = item.status === 'analyzing'
   const isReady = item.status === 'ready'
 
-  const borderColor = isDone ? '#BBF7D0' : isError ? '#FCA5A5' : isReady ? '#F59E0B' : 'var(--border)'
-  const leftAccent = isReady ? '#F59E0B' : isDone ? '#16A34A' : 'transparent'
-
   return (
     <div
       style={{
         borderRadius: '10px',
-        border: `1px solid ${borderColor}`,
-        borderLeft: `3px solid ${leftAccent}`,
-        background: isReady ? '#FFFBEB' : 'var(--card)',
+        border: isReady ? '2px solid var(--accent)' : isDone ? '1px solid #BBF7D0' : isError ? '1px solid #FCA5A5' : '1px solid var(--border)',
+        background: 'var(--card)',
         overflow: 'hidden',
         opacity: isDone ? 0.7 : 1,
         transition: 'opacity 0.2s',
+        animation: isReady ? 'slideIn 0.25s ease-out' : undefined,
       }}
     >
-      {/* Card header — file name */}
+      {/* Card header — accent stripe when ready */}
       <div
         style={{
           padding: '0.75rem 1.25rem',
-          borderBottom: isReady || isSaving ? `1px solid ${isReady ? '#FDE68A' : 'var(--border)'}` : 'none',
-          background: isReady ? '#FEF3C7' : isDone ? '#F0FDF4' : 'transparent',
+          background: isReady ? 'var(--accent)' : isDone ? '#F0FDF4' : 'var(--background)',
+          borderBottom: `1px solid ${isReady ? 'rgba(255,255,255,0.15)' : isDone ? '#BBF7D0' : 'var(--border)'}`,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: '0.75rem',
         }}
       >
-        <div className="flex items-center gap-2 min-w-0">
+        <div className="flex items-center gap-2.5 min-w-0">
           {item.file ? (
-            <svg className="h-4 w-4 shrink-0" style={{ color: isReady ? '#D97706' : '#9CA3AF' }} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
+            <svg className="h-4 w-4 shrink-0" style={{ color: isReady ? 'rgba(255,255,255,0.7)' : '#9CA3AF' }} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
             </svg>
           ) : (
-            <svg className="h-4 w-4 shrink-0 text-gray-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
+            <svg className="h-4 w-4 shrink-0" style={{ color: isReady ? 'rgba(255,255,255,0.7)' : '#9CA3AF' }} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244" />
             </svg>
           )}
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold" style={{ color: isReady ? '#92400E' : 'var(--foreground)' }}>
+            <p className="truncate text-sm font-semibold" style={{ color: isReady ? '#ffffff' : 'var(--foreground)' }}>
               {item.file ? item.file.name : item.linkUrl}
             </p>
             {isReady && (
-              <p style={{ fontSize: '0.7rem', color: '#B45309', marginTop: '1px' }}>
-                Granska och redigera nedan innan du sparar
+              <p style={{ fontSize: '0.6875rem', color: 'rgba(255,255,255,0.75)', marginTop: '1px' }}>
+                Granska nedan — klicka sedan "Spara till listan"
               </p>
             )}
           </div>
@@ -110,9 +107,9 @@ function FileCard({ item, identity, onChange, onRemove, onSetFallbackIdentity }:
             type="button"
             onClick={() => onRemove(item.id)}
             className="shrink-0"
-            style={{ color: '#D1D5DB', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.875rem' }}
-            onMouseEnter={e => e.currentTarget.style.color = '#6B7280'}
-            onMouseLeave={e => e.currentTarget.style.color = '#D1D5DB'}
+            style={{ color: isReady ? 'rgba(255,255,255,0.5)' : '#D1D5DB', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.875rem' }}
+            onMouseEnter={e => e.currentTarget.style.color = isReady ? '#ffffff' : '#6B7280'}
+            onMouseLeave={e => e.currentTarget.style.color = isReady ? 'rgba(255,255,255,0.5)' : '#D1D5DB'}
             aria-label="Ta bort"
           >
             ✕
@@ -150,18 +147,19 @@ function FileCard({ item, identity, onChange, onRemove, onSetFallbackIdentity }:
           {item.file && (
             <div style={{
               display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              padding: '0.5rem 0.75rem',
-              borderRadius: '7px',
-              background: 'rgba(28,63,94,0.06)',
-              marginBottom: '0.875rem',
+              alignItems: 'flex-start',
+              gap: '0.625rem',
+              padding: '0.75rem',
+              borderRadius: '8px',
+              background: 'rgba(28,63,94,0.05)',
+              border: '1px solid rgba(28,63,94,0.12)',
+              marginBottom: '1rem',
             }}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: '1px' }} aria-hidden="true">
                 <circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>
               </svg>
-              <p style={{ fontSize: '0.75rem', color: 'var(--accent)', margin: 0 }}>
-                AI har analyserat dokumentet — <strong>granska och justera</strong> om något stämmer bättre
+              <p style={{ fontSize: '0.8125rem', color: 'var(--accent)', margin: 0, lineHeight: 1.45 }}>
+                AI har fyllt i kategori, titel och beskrivning. <strong>Granska och justera</strong> om något behöver korrigeras — klicka sedan <strong>Spara till listan</strong>.
               </p>
             </div>
           )}
@@ -605,7 +603,7 @@ export function SmartUpload() {
                   </svg>
                   Sparar…
                 </span>
-              ) : `Spara ${readyItems.length === 1 ? 'dokument' : `${readyItems.length} dokument`}`}
+              ) : readyItems.length === 1 ? 'Spara till listan' : `Spara ${readyItems.length} dokument till listan`}
             </button>
           ) : allReady ? (
             <p style={{ textAlign: 'center', fontSize: '0.8125rem', color: 'var(--muted)' }}>Välj uppladdare på varje dokument för att fortsätta</p>
