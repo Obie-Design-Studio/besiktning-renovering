@@ -70,7 +70,7 @@ export const CHECKLIST_ITEMS: ChecklistItem[] = [
     category: 'Garantier & Försäkringar',
     title: 'Garantier & Försäkringar',
     description:
-      'Försäkringsbrev, garantier och liknande handlingar. Enligt HF17 ska följande bifogas: Allriskförsäkring för skador på entreprenaden (beställaren ska vara medförsäkrad) samt Ansvarsförsäkring för entreprenörsverksamhet, som ska gälla under entreprenadtiden och minst två år efter entreprenadens godkännande.',
+      'Försäkringsbrev, garantibevis och liknande handlingar — inkl. allrisk- och ansvarsförsäkring enligt HF17.',
   },
 ]
 
