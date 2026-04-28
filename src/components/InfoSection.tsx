@@ -127,6 +127,7 @@ export function InfoSection({ uploadButton }: InfoSectionProps) {
           role="Beställare"
           name="Tobias Johansson & Elisabeth Ståhl"
           contact={[
+            { label: 'Telefon', value: '0706 850809', href: 'tel:0706850809' },
             { label: 'E-post', value: 'tobiasjohansson79@gmail.com', href: 'mailto:tobiasjohansson79@gmail.com' },
             { label: 'Adress', value: 'Schlyters Väg 4, Lund' },
           ]}
