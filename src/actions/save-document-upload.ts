@@ -77,55 +77,55 @@ export async function saveDocumentUpload(input: SaveDocumentInput): Promise<Save
     return { success: true }
   }
 
-  // Duplicate detection — check content hash before uploading to storage
-  let contentHash: string | null = null
+  // Legacy paths: either raw file bytes or URL import —
+  // both still route through the server (kept for compatibility and URL imports)
+  let legacyHash: string | null = null
+  let legacyFileUrl: string
+  let legacyFileName: string
+
   if (hasFile && file) {
-    contentHash = await hashFile(file)
+    // Duplicate check before uploading
+    legacyHash = await hashFile(file)
     const { data: existing } = await supabase
       .from('document_uploads')
       .select('upload_title')
-      .eq('content_hash', contentHash)
+      .eq('content_hash', legacyHash)
       .maybeSingle()
     if (existing) {
       return { success: false, error: `Den här filen finns redan uppladdad som "${existing.upload_title}".` }
     }
-  }
 
-  let fileUrl: string
-  let fileName: string
-
-  if (hasFile && file) {
-    // Direct file upload
+    // Direct file upload (legacy — only works for files < 4.5 MB on Vercel)
     const extension = file.name.split('.').pop() ?? 'pdf'
-    const storagePath = `${Date.now()}-${Math.random().toString(36).slice(2)}.${extension}`
+    const legacyPath = `${Date.now()}-${Math.random().toString(36).slice(2)}.${extension}`
 
     const { error: storageError } = await supabase.storage
       .from(STORAGE_BUCKET)
-      .upload(storagePath, file, { contentType: file.type })
+      .upload(legacyPath, file, { contentType: file.type })
 
     if (storageError) return { success: false, error: `Uppladdningsfel: ${storageError.message}` }
 
-    const { data: urlData } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(storagePath)
-    fileUrl = urlData.publicUrl
-    fileName = file.name
+    const { data: urlData } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(legacyPath)
+    legacyFileUrl = urlData.publicUrl
+    legacyFileName = file.name
   } else {
     // URL import — download the PDF and store it in Supabase Storage so it
     // is permanently safe regardless of whether the source URL stays alive
     const trimmedUrl = linkUrl!.trim()
-    fileName = trimmedUrl.split('/').pop()?.split('?')[0] ?? 'dokument.pdf'
-    if (!fileName.endsWith('.pdf')) fileName += '.pdf'
+    legacyFileName = trimmedUrl.split('/').pop()?.split('?')[0] ?? 'dokument.pdf'
+    if (!legacyFileName.endsWith('.pdf')) legacyFileName += '.pdf'
 
     let fetchedBuffer: ArrayBuffer
     try {
       const res = await fetch(trimmedUrl)
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       fetchedBuffer = await res.arrayBuffer()
-    } catch (err) {
+    } catch {
       // If we can't download the PDF, fall back to storing just the link
       const { error: dbError } = await supabase.from('document_uploads').insert({
         document_item_slug: slug,
         file_url: trimmedUrl,
-        file_name: fileName,
+        file_name: legacyFileName,
         file_source: 'link',
         upload_title: uploadTitle,
         upload_description: uploadDescription,
@@ -138,37 +138,37 @@ export async function saveDocumentUpload(input: SaveDocumentInput): Promise<Save
 
     // Compute hash for duplicate detection
     const { createHash } = await import('crypto')
-    contentHash = createHash('sha256').update(Buffer.from(fetchedBuffer)).digest('hex')
+    legacyHash = createHash('sha256').update(Buffer.from(fetchedBuffer)).digest('hex')
 
     const { data: existing } = await supabase
       .from('document_uploads')
       .select('upload_title')
-      .eq('content_hash', contentHash)
+      .eq('content_hash', legacyHash)
       .maybeSingle()
     if (existing) {
       return { success: false, error: `Den här filen finns redan uppladdad som "${existing.upload_title}".` }
     }
 
-    const storagePath = `${Date.now()}-${Math.random().toString(36).slice(2)}.pdf`
+    const legacyPath = `${Date.now()}-${Math.random().toString(36).slice(2)}.pdf`
     const { error: storageError } = await supabase.storage
       .from(STORAGE_BUCKET)
-      .upload(storagePath, fetchedBuffer, { contentType: 'application/pdf' })
+      .upload(legacyPath, fetchedBuffer, { contentType: 'application/pdf' })
 
     if (storageError) return { success: false, error: `Uppladdningsfel: ${storageError.message}` }
 
-    const { data: urlData } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(storagePath)
-    fileUrl = urlData.publicUrl
+    const { data: urlData } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(legacyPath)
+    legacyFileUrl = urlData.publicUrl
   }
 
   const { error: dbError } = await supabase.from('document_uploads').insert({
     document_item_slug: slug,
-    file_url: fileUrl,
-    file_name: fileName,
+    file_url: legacyFileUrl!,
+    file_name: legacyFileName!,
     file_source: 'upload',
     upload_title: uploadTitle,
     upload_description: uploadDescription,
     uploader_name: uploaderName,
-    content_hash: contentHash,
+    content_hash: legacyHash,
   })
 
   if (dbError) return { success: false, error: `Kunde inte spara: ${dbError.message}` }
