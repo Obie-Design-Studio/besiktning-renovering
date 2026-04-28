@@ -33,7 +33,16 @@ async function analyzeFile(file: File): Promise<AnalyzeDocumentResponse> {
   const body = new FormData()
   body.append('file', file)
   const res = await fetch('/api/analyze-document', { method: 'POST', body })
-  const json = await res.json()
+
+  // Server may return plain text for oversized requests (413) — handle before JSON.parse
+  let json: unknown
+  try {
+    json = await res.json()
+  } catch {
+    if (res.status === 413) throw new Error('Filen är för stor för AI-analys. Fyll i titel och beskrivning manuellt.')
+    throw new Error(`Serverfel (HTTP ${res.status}) — fyll i titel och beskrivning manuellt.`)
+  }
+
   if (!res.ok) throw new Error((json as { error?: string }).error ?? 'Okänt fel')
   return json as AnalyzeDocumentResponse
 }
@@ -148,6 +157,12 @@ function FileCard({ item, identity, onChange, onRemove, onSetFallbackIdentity }:
 
       {isError && item.errorMessage && (
         <p style={{ fontSize: '0.8125rem', color: '#DC2626' }}>{item.errorMessage}</p>
+      )}
+
+      {isReady && item.errorMessage && (
+        <p style={{ fontSize: '0.8125rem', color: '#B45309', background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: '6px', padding: '6px 10px', margin: '0 0 4px' }}>
+          {item.errorMessage}
+        </p>
       )}
 
       {(isReady || isSaving) && (
@@ -334,9 +349,12 @@ export function SmartUpload() {
           selectedSlug: result.suggested_slug,
         })
       } catch (err) {
+        // Analysis failed (e.g. file too large) — still allow the user to fill in details and save
         updateItem(item.id, {
-          status: 'error',
-          errorMessage: err instanceof Error ? err.message : 'AI-analys misslyckades.',
+          status: 'ready',
+          title: '',
+          description: '',
+          errorMessage: err instanceof Error ? err.message : 'AI-analys misslyckades — fyll i titel manuellt.',
         })
       }
     }
