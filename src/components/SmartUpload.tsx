@@ -473,7 +473,7 @@ export function SmartUpload() {
               {doneItems.map((item) => (
                 <li key={item.id} style={{ fontSize: '0.8125rem', color: '#16A34A', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
                   <span>✓</span>
-                  <span style={{ fontWeight: 500 }}>{item.title || item.file.name}</span>
+                  <span style={{ fontWeight: 500 }}>{item.title || item.file?.name || item.linkUrl}</span>
                 </li>
               ))}
             </ul>
