@@ -242,6 +242,7 @@ export function SmartUpload() {
   const [items, setItems] = useState<FileReviewItem[]>([])
   const [isDragging, setIsDragging] = useState(false)
   const [isSavingAll, setIsSavingAll] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
   const [urlInput, setUrlInput] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
@@ -322,26 +323,34 @@ export function SmartUpload() {
   const canSaveAll = allReady && (identity !== null || readyItems.every((i) => i.uploaderName !== ''))
 
   async function handleSaveAll() {
+    setSaveError(null)
     setIsSavingAll(true)
-    for (const item of readyItems) {
-      updateItem(item.id, { status: 'saving' })
-      const result = await saveDocumentUpload({
-        slug: item.selectedSlug,
-        uploadTitle: item.title,
-        uploadDescription: item.description,
-        uploaderName: identity ?? item.uploaderName,
-        file: item.file,
-        linkUrl: item.linkUrl,
-      })
-      if (result.success) {
-        updateItem(item.id, { status: 'done' })
-      } else {
-        updateItem(item.id, { status: 'error', errorMessage: result.error })
+    const snapshot = readyItems // capture before async work begins
+    try {
+      for (const item of snapshot) {
+        updateItem(item.id, { status: 'saving' })
+        const result = await saveDocumentUpload({
+          slug: item.selectedSlug,
+          uploadTitle: item.title,
+          uploadDescription: item.description,
+          uploaderName: identity ?? item.uploaderName,
+          file: item.file,
+          linkUrl: item.linkUrl,
+        })
+        if (result.success) {
+          updateItem(item.id, { status: 'done' })
+        } else {
+          updateItem(item.id, { status: 'error', errorMessage: result.error ?? 'Okänt fel.' })
+          setSaveError(result.error ?? 'Något gick fel. Försök igen.')
+        }
       }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Oväntat fel vid uppladdning.'
+      setSaveError(msg)
+    } finally {
+      setIsSavingAll(false)
     }
-    setIsSavingAll(false)
-    // router.refresh() is intentionally NOT called here — it's called after the
-    // confirmation panel auto-closes so the success message isn't interrupted.
+    // router.refresh() is called after the confirmation panel auto-closes (see useEffect below)
   }
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -540,6 +549,19 @@ export function SmartUpload() {
           <p style={{ textAlign: 'center', fontSize: '0.8125rem', color: 'var(--muted)' }}>
             Analyserar {analyzingItems.length} till…
           </p>
+        )}
+
+        {/* Save error banner */}
+        {saveError && !allDone && (
+          <div style={{ borderRadius: '8px', border: '1px solid #FCA5A5', background: '#FEF2F2', padding: '0.875rem 1rem', display: 'flex', gap: '0.625rem' }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: '1px' }} aria-hidden="true">
+              <circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>
+            </svg>
+            <div>
+              <p style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#B91C1C', marginBottom: '2px' }}>Uppladdningen misslyckades</p>
+              <p style={{ fontSize: '0.8125rem', color: '#DC2626' }}>{saveError}</p>
+            </div>
+          </div>
         )}
 
         {/* Actions */}
