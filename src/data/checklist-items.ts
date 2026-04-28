@@ -73,6 +73,18 @@ export const CHECKLIST_ITEMS: ChecklistItem[] = [
   },
 ]
 
+/** Maps category name → sticky nav anchor ID. */
+export const CATEGORY_NAV_ID: Record<string, string> = {
+  'VVS': 'nav-vvs',
+  'Våtrum': 'nav-vatrum',
+  'El': 'nav-el',
+  'Bygg': 'nav-bygg',
+  'Ventilation': 'nav-ventilation',
+  'Drift & Underhåll': 'nav-drift',
+  'Handlingar': 'nav-handlingar',
+  'Garantier': 'nav-garantier',
+}
+
 /** Categories in display order. */
 export const CATEGORY_ORDER = [
   'VVS',

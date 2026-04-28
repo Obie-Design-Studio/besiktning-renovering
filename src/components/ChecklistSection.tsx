@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { CHECKLIST_ITEMS, groupItemsByCategory, type ChecklistItem } from '@/data/checklist-items'
+import { CHECKLIST_ITEMS, groupItemsByCategory, CATEGORY_NAV_ID, type ChecklistItem } from '@/data/checklist-items'
 import { InlineUploadForm } from '@/components/InlineUploadForm'
 import { CommentThread } from '@/components/CommentThread'
 import { DeleteButton } from '@/components/DeleteButton'
@@ -186,6 +186,7 @@ export function ChecklistSection({ uploadsBySlug, commentsBySlug }: ChecklistSec
         {groupedItems.map(([category, items], groupIdx) => (
           <div
             key={category}
+            id={CATEGORY_NAV_ID[category]}
             style={{ borderTop: groupIdx > 0 ? '1px solid var(--border)' : 'none' }}
           >
             <div style={{ padding: '1rem 1.25rem 0' }}>

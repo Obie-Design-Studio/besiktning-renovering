@@ -3,6 +3,7 @@ import { InfoSection } from '@/components/InfoSection'
 import { SmartUpload } from '@/components/SmartUpload'
 import { ChecklistSection } from '@/components/ChecklistSection'
 import { ExtraDocsSection } from '@/components/ExtraDocsSection'
+import { StickyNav } from '@/components/StickyNav'
 import type { DocumentUpload } from '@/types/document'
 import type { Comment } from '@/types/comment'
 
@@ -54,9 +55,10 @@ export default async function HomePage() {
 
   return (
     <>
-      <InfoSection uploadButton={<SmartUpload />} />
+      <StickyNav />
+      <div id="nav-info"><InfoSection uploadButton={<SmartUpload />} /></div>
       <ChecklistSection uploadsBySlug={checklistUploadsBySlug} commentsBySlug={commentsBySlug} />
-      <ExtraDocsSection uploads={extraUploads} comments={commentsBySlug[EXTRA_SLUG] ?? []} commentsBySlug={commentsBySlug} />
+      <div id="nav-ovrig"><ExtraDocsSection uploads={extraUploads} comments={commentsBySlug[EXTRA_SLUG] ?? []} commentsBySlug={commentsBySlug} /></div>
     </>
   )
 }
