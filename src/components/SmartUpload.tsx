@@ -118,50 +118,89 @@ function FileCard({ item, identity, onChange, onRemove, onSetFallbackIdentity }:
       )}
 
       {(isReady || isSaving) && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem', marginTop: '0.75rem' }}>
-          <div>
-            <label style={{ display: 'block', fontSize: '0.6875rem', fontWeight: 500, color: 'var(--muted)', marginBottom: '3px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Kategori</label>
-            <select
-              value={item.selectedSlug}
-              onChange={(e) => onChange(item.id, { selectedSlug: e.target.value })}
-              disabled={isSaving}
-              style={{ width: '100%', borderRadius: '7px', border: '1px solid var(--border)', background: 'var(--background)', padding: '0.4rem 0.625rem', fontSize: '0.8125rem', color: 'var(--foreground)', outline: 'none' }}
-            >
-              {ALL_SLUG_OPTIONS.map((opt) => (
-                <option key={opt.slug} value={opt.slug}>{opt.label}</option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label style={{ display: 'block', fontSize: '0.6875rem', fontWeight: 500, color: 'var(--muted)', marginBottom: '3px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Titel</label>
-            <input type="text" value={item.title} onChange={(e) => onChange(item.id, { title: e.target.value })} disabled={isSaving}
-              style={{ width: '100%', borderRadius: '7px', border: '1px solid var(--border)', background: 'var(--background)', padding: '0.4rem 0.625rem', fontSize: '0.8125rem', color: 'var(--foreground)', outline: 'none' }}
-            />
-          </div>
-
-          <div>
-            <label style={{ display: 'block', fontSize: '0.6875rem', fontWeight: 500, color: 'var(--muted)', marginBottom: '3px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Beskrivning</label>
-            <textarea rows={2} value={item.description} onChange={(e) => onChange(item.id, { description: e.target.value })} disabled={isSaving}
-              style={{ width: '100%', borderRadius: '7px', border: '1px solid var(--border)', background: 'var(--background)', padding: '0.4rem 0.625rem', fontSize: '0.8125rem', color: 'var(--foreground)', outline: 'none', resize: 'none' }}
-            />
-          </div>
-
-          {identity ? (
-            <p style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>
-              Laddar upp som <strong style={{ color: 'var(--foreground)' }}>{identity}</strong>
-            </p>
-          ) : (
-            <div className="flex gap-2">
-              {UPLOADERS.map((name) => (
-                <label key={name} className="flex cursor-pointer items-center gap-2"
-                  style={{ padding: '4px 10px', borderRadius: '6px', border: `1px solid ${item.uploaderName === name ? 'var(--foreground)' : 'var(--border)'}`, background: item.uploaderName === name ? 'var(--foreground)' : 'var(--card)', fontSize: '0.75rem', color: item.uploaderName === name ? 'var(--card)' : 'var(--muted)', cursor: 'pointer', transition: 'all 0.15s' }}>
-                  <input type="radio" name={`uploader-${item.id}`} value={name} checked={item.uploaderName === name} onChange={() => { onChange(item.id, { uploaderName: name }); onSetFallbackIdentity(name) }} disabled={isSaving} className="sr-only" />
-                  {name}
-                </label>
-              ))}
+        <div style={{ marginTop: '0.75rem' }}>
+          {/* AI notice banner */}
+          {item.file && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              padding: '0.5rem 0.75rem',
+              borderRadius: '7px',
+              background: 'rgba(28,63,94,0.06)',
+              marginBottom: '0.875rem',
+            }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>
+              </svg>
+              <p style={{ fontSize: '0.75rem', color: 'var(--accent)', margin: 0 }}>
+                AI har analyserat dokumentet — <strong>granska och justera</strong> om något stämmer bättre
+              </p>
             </div>
           )}
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.6875rem', fontWeight: 600, color: 'var(--muted)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Kategori
+                <span style={{ fontSize: '0.6rem', background: 'var(--border)', borderRadius: '4px', padding: '1px 5px', color: 'var(--muted)', fontWeight: 500, letterSpacing: '0.03em', textTransform: 'none' }}>redigerbar</span>
+              </label>
+              <select
+                value={item.selectedSlug}
+                onChange={(e) => onChange(item.id, { selectedSlug: e.target.value })}
+                disabled={isSaving}
+                style={{ width: '100%', borderRadius: '7px', border: '1.5px solid var(--border)', background: 'var(--card)', padding: '0.5rem 0.625rem', fontSize: '0.8125rem', color: 'var(--foreground)', outline: 'none', cursor: 'pointer' }}
+              >
+                {ALL_SLUG_OPTIONS.map((opt) => (
+                  <option key={opt.slug} value={opt.slug}>{opt.label}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.6875rem', fontWeight: 600, color: 'var(--muted)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Titel
+                <span style={{ fontSize: '0.6rem', background: 'var(--border)', borderRadius: '4px', padding: '1px 5px', color: 'var(--muted)', fontWeight: 500, letterSpacing: '0.03em', textTransform: 'none' }}>redigerbar</span>
+              </label>
+              <input
+                type="text"
+                value={item.title}
+                onChange={(e) => onChange(item.id, { title: e.target.value })}
+                disabled={isSaving}
+                style={{ width: '100%', borderRadius: '7px', border: '1.5px solid var(--border)', background: 'var(--card)', padding: '0.5rem 0.625rem', fontSize: '0.8125rem', color: 'var(--foreground)', outline: 'none' }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.6875rem', fontWeight: 600, color: 'var(--muted)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Beskrivning
+                <span style={{ fontSize: '0.6rem', background: 'var(--border)', borderRadius: '4px', padding: '1px 5px', color: 'var(--muted)', fontWeight: 500, letterSpacing: '0.03em', textTransform: 'none' }}>redigerbar</span>
+              </label>
+              <textarea
+                rows={3}
+                value={item.description}
+                onChange={(e) => onChange(item.id, { description: e.target.value })}
+                disabled={isSaving}
+                style={{ width: '100%', borderRadius: '7px', border: '1.5px solid var(--border)', background: 'var(--card)', padding: '0.5rem 0.625rem', fontSize: '0.8125rem', color: 'var(--foreground)', outline: 'none', resize: 'vertical' }}
+              />
+            </div>
+
+            {identity ? (
+              <p style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>
+                Laddar upp som <strong style={{ color: 'var(--foreground)' }}>{identity}</strong>
+              </p>
+            ) : (
+              <div className="flex gap-2">
+                {UPLOADERS.map((name) => (
+                  <label key={name} className="flex cursor-pointer items-center gap-2"
+                    style={{ padding: '4px 10px', borderRadius: '6px', border: `1px solid ${item.uploaderName === name ? 'var(--foreground)' : 'var(--border)'}`, background: item.uploaderName === name ? 'var(--foreground)' : 'var(--card)', fontSize: '0.75rem', color: item.uploaderName === name ? 'var(--card)' : 'var(--muted)', cursor: 'pointer', transition: 'all 0.15s' }}>
+                    <input type="radio" name={`uploader-${item.id}`} value={name} checked={item.uploaderName === name} onChange={() => { onChange(item.id, { uploaderName: name }); onSetFallbackIdentity(name) }} disabled={isSaving} className="sr-only" />
+                    {name}
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
