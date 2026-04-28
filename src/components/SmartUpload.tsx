@@ -256,12 +256,22 @@ export function SmartUpload() {
   function addLinkItem(url: string) {
     const trimmed = url.trim()
     if (!trimmed) return
+    // Auto-derive a readable title from the URL path
+    const autoTitle = (() => {
+      try {
+        const pathname = new URL(trimmed).pathname
+        const segment = pathname.split('/').filter(Boolean).pop() ?? ''
+        return segment.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ')
+      } catch {
+        return ''
+      }
+    })()
     const newItem: FileReviewItem = {
       id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
       file: null,
       linkUrl: trimmed,
       status: 'ready',
-      title: '',
+      title: autoTitle,
       description: '',
       selectedSlug: 'ovrig',
       uploaderName: (identity as UploaderName) ?? 'Tobias',
@@ -318,7 +328,9 @@ export function SmartUpload() {
   const readyItems = items.filter((i) => i.status === 'ready')
   const analyzingItems = items.filter((i) => i.status === 'analyzing')
   const allReady = readyItems.length > 0 && analyzingItems.length === 0
-  const canSaveAll = allReady && (identity !== null || readyItems.every((i) => i.uploaderName !== ''))
+  const allHaveTitles = readyItems.every((i) => i.title.trim() !== '')
+  const allHaveUploaders = identity !== null || readyItems.every((i) => i.uploaderName !== '')
+  const canSaveAll = allReady && allHaveTitles && allHaveUploaders
 
   async function handleSaveAll() {
     setSaveError(null)
@@ -369,17 +381,19 @@ export function SmartUpload() {
 
   const doneItems = items.filter((i) => i.status === 'done')
   const doneCount = doneItems.length
-  const allDone = items.length > 0 && items.every((i) => i.status === 'done' || i.status === 'error')
+  const allFinished = items.length > 0 && items.every((i) => i.status === 'done' || i.status === 'error')
+  // Only show the success confirmation when at least one file actually saved
+  const allDone = allFinished && doneCount > 0
 
   // Auto-close 4 seconds after all files are done (refresh already fired in handleSaveAll)
   useEffect(() => {
-    if (!allDone || doneCount === 0) return
+    if (!allDone) return // allDone already requires doneCount > 0
     const timer = setTimeout(() => {
       setIsOpen(false)
       setItems([])
     }, 4000)
     return () => clearTimeout(timer)
-  }, [allDone, doneCount])
+  }, [allDone])
 
   if (!isOpen) {
     return (
@@ -614,7 +628,11 @@ export function SmartUpload() {
               ) : readyItems.length === 1 ? 'Spara till listan' : `Spara ${readyItems.length} dokument till listan`}
             </button>
           ) : allReady ? (
-            <p style={{ textAlign: 'center', fontSize: '0.8125rem', color: 'var(--muted)' }}>Välj uppladdare på varje dokument för att fortsätta</p>
+            <p style={{ textAlign: 'center', fontSize: '0.8125rem', color: 'var(--muted)' }}>
+              {!allHaveTitles
+                ? 'Fyll i titel för varje dokument för att fortsätta'
+                : 'Välj uppladdare på varje dokument för att fortsätta'}
+            </p>
           ) : null}
 
         </div>
