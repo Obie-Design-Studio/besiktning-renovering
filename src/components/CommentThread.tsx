@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { addComment } from '@/actions/add-comment'
+import { deleteComment } from '@/actions/delete-comment'
 import { useIdentityContext } from '@/context/IdentityContext'
 import type { Comment, CommentAuthor } from '@/types/comment'
 
@@ -95,6 +96,31 @@ export function CommentThread({ slug, comments }: CommentThreadProps) {
                   <span style={{ fontSize: '0.6875rem', color: 'var(--muted)' }}>
                     {formatRelative(comment.created_at)}
                   </span>
+                  {identity === 'Tobias' && (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (!confirm('Ta bort kommentaren?')) return
+                        await deleteComment(comment.id)
+                        router.refresh()
+                      }}
+                      style={{
+                        marginLeft: 'auto',
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontSize: '0.6875rem',
+                        color: 'var(--muted)',
+                        padding: '0 2px',
+                        lineHeight: 1,
+                      }}
+                      onMouseEnter={e => (e.currentTarget.style.color = '#DC2626')}
+                      onMouseLeave={e => (e.currentTarget.style.color = 'var(--muted)')}
+                      aria-label="Ta bort kommentar"
+                    >
+                      ✕
+                    </button>
+                  )}
                 </div>
                 <p
                   style={{
