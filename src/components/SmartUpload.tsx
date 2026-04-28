@@ -264,7 +264,7 @@ export function SmartUpload() {
       title: '',
       description: '',
       selectedSlug: 'ovrig',
-      uploaderName: (identity as UploaderName) ?? '',
+      uploaderName: (identity as UploaderName) ?? 'Tobias',
     }
     setItems((prev) => [...prev, newItem])
     setUrlInput('')
@@ -281,7 +281,7 @@ export function SmartUpload() {
       title: '',
       description: '',
       selectedSlug: 'ovrig',
-      uploaderName: (identity as UploaderName) ?? '',
+      uploaderName: (identity as UploaderName) ?? 'Tobias',
     }))
 
     setItems((prev) => [...prev, ...newItems])
