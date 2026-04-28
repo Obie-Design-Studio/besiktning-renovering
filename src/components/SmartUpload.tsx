@@ -379,13 +379,13 @@ export function SmartUpload() {
   // Only show the success confirmation when at least one file actually saved
   const allDone = allFinished && doneCount > 0
 
-  // Auto-close 4 seconds after all files are done (refresh already fired in handleSaveAll)
+  // Auto-close 1.5 seconds after all files are done (page already refreshed in handleSaveAll)
   useEffect(() => {
-    if (!allDone) return // allDone already requires doneCount > 0
+    if (!allDone) return
     const timer = setTimeout(() => {
       setIsOpen(false)
       setItems([])
-    }, 4000)
+    }, 1500)
     return () => clearTimeout(timer)
   }, [allDone])
 
@@ -602,7 +602,7 @@ export function SmartUpload() {
                   </li>
                 ))}
               </ul>
-              <p style={{ fontSize: '0.75rem', color: '#4ADE80', opacity: 0.8 }}>Stängs automatiskt…</p>
+              <p style={{ fontSize: '0.75rem', color: '#4ADE80', opacity: 0.8 }}>Stängs om ett ögonblick…</p>
             </div>
           ) : canSaveAll ? (
             <button
