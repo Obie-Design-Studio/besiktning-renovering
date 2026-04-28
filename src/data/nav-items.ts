@@ -7,6 +7,6 @@ export const NAV_ITEMS = [
   { id: 'nav-ventilation', label: 'Ventilation' },
   { id: 'nav-drift', label: 'Drift & Underhåll' },
   { id: 'nav-handlingar', label: 'Handlingar' },
-  { id: 'nav-garantier', label: 'Garantier' },
+  { id: 'nav-garantier', label: 'Garantier & Försäkringar' },
   { id: 'nav-ovrig', label: 'Övrig dokumentation' },
 ] as const

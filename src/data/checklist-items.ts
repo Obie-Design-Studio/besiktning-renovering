@@ -67,9 +67,10 @@ export const CHECKLIST_ITEMS: ChecklistItem[] = [
   },
   {
     slug: 'garantier',
-    category: 'Garantier',
-    title: 'Garantier',
-    description: 'Garantibevis och garantidokumentation för utförda arbeten och installationer.',
+    category: 'Garantier och Försäkringar',
+    title: 'Garantier och Försäkringar',
+    description:
+      'Försäkringsbrev, garantier och liknande handlingar. Enligt HF17 ska följande bifogas: Allriskförsäkring för skador på entreprenaden (beställaren ska vara medförsäkrad) samt Ansvarsförsäkring för entreprenörsverksamhet, som ska gälla under entreprenadtiden och minst två år efter entreprenadens godkännande.',
   },
 ]
 
@@ -82,7 +83,7 @@ export const CATEGORY_NAV_ID: Record<string, string> = {
   'Ventilation': 'nav-ventilation',
   'Drift & Underhåll': 'nav-drift',
   'Handlingar': 'nav-handlingar',
-  'Garantier': 'nav-garantier',
+  'Garantier och Försäkringar': 'nav-garantier',
 }
 
 /** Categories in display order. */
@@ -94,7 +95,7 @@ export const CATEGORY_ORDER = [
   'Ventilation',
   'Drift & Underhåll',
   'Handlingar',
-  'Garantier',
+  'Garantier och Försäkringar',
 ] as const
 
 export type Category = (typeof CATEGORY_ORDER)[number]
