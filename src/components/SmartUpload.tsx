@@ -253,11 +253,12 @@ export function SmartUpload() {
     setItems((prev) => prev.filter((item) => item.id !== id))
   }
 
-  function addLinkItem(url: string) {
+  async function addLinkItem(url: string) {
     const trimmed = url.trim()
     if (!trimmed) return
-    // Auto-derive a readable title from the URL path
-    const autoTitle = (() => {
+
+    // Derive a fallback title from the URL in case AI analysis fails
+    const fallbackTitle = (() => {
       try {
         const pathname = new URL(trimmed).pathname
         const segment = pathname.split('/').filter(Boolean).pop() ?? ''
@@ -266,18 +267,39 @@ export function SmartUpload() {
         return ''
       }
     })()
+
+    const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`
     const newItem: FileReviewItem = {
-      id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      id,
       file: null,
       linkUrl: trimmed,
-      status: 'ready',
-      title: autoTitle,
+      status: 'analyzing',
+      title: fallbackTitle,
       description: '',
       selectedSlug: 'ovrig',
       uploaderName: (identity as UploaderName) ?? 'Tobias',
     }
     setItems((prev) => [...prev, newItem])
     setUrlInput('')
+
+    // Fetch the PDF and run it through AI analysis, just like file uploads
+    try {
+      const res = await fetch(trimmed)
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const blob = await res.blob()
+      const fileName = fallbackTitle || 'dokument'
+      const file = new File([blob], `${fileName}.pdf`, { type: 'application/pdf' })
+      const result = await analyzeFile(file)
+      updateItem(id, {
+        status: 'ready',
+        title: result.title || fallbackTitle,
+        description: result.description,
+        selectedSlug: result.suggested_slug,
+      })
+    } catch {
+      // CORS block, network error, or AI failure — fall back to manual entry
+      updateItem(id, { status: 'ready' })
+    }
   }
 
   async function processFiles(files: File[]) {
