@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import './globals.css'
 import { IdentityBadge } from '@/components/IdentityBadge'
 import { IdentityProvider } from '@/context/IdentityContext'
+import { SmartUploadProvider } from '@/context/SmartUploadContext'
 
 export const metadata: Metadata = {
   title: 'Slutbesiktning Lund 25:16',
@@ -17,6 +18,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
     <html lang="sv">
       <body className="min-h-screen antialiased" style={{ background: 'var(--background)', color: 'var(--foreground)' }}>
         <IdentityProvider>
+        <SmartUploadProvider>
           <header style={{ borderBottom: '1px solid var(--border)', background: 'var(--card)' }}>
             <div className="mx-auto max-w-3xl px-6 py-4 flex items-center justify-between">
               <span className="text-xs font-medium tracking-widest uppercase" style={{ color: 'var(--muted)' }}>
@@ -35,6 +37,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
               </p>
             </div>
           </footer>
+        </SmartUploadProvider>
         </IdentityProvider>
       </body>
     </html>

@@ -7,6 +7,7 @@ import { saveDocumentUpload } from '@/actions/save-document-upload'
 import { createUploadUrl } from '@/actions/create-upload-url'
 import { createSupabaseBrowser } from '@/lib/supabase'
 import { useIdentityContext } from '@/context/IdentityContext'
+import { registerUploadHandler } from '@/context/SmartUploadContext'
 import type { AnalyzeDocumentResponse } from '@/app/api/analyze-document/route'
 import type { UploaderName } from '@/types/document'
 
@@ -561,7 +562,7 @@ export function SmartUpload() {
     }
   }
 
-  async function processFiles(files: File[]) {
+  async function processFiles(files: File[], preselectedSlug?: string) {
     const pdfFiles = files.filter((f) => f.type === 'application/pdf' || f.name.endsWith('.pdf'))
     if (!pdfFiles.length) return
 
@@ -571,7 +572,7 @@ export function SmartUpload() {
       status: 'analyzing',
       title: '',
       description: '',
-      selectedSlug: 'ovrig',
+      selectedSlug: preselectedSlug ?? 'ovrig',
       uploaderName: (identity as UploaderName) ?? 'Tobias',
     }))
 
@@ -626,7 +627,9 @@ export function SmartUpload() {
           status: 'ready',
           title: aiTitle || fallbackTitle,
           description: aiDescription,
-          selectedSlug: result.suggested_slug ?? 'ovrig',
+          // Keep the preselected category if the user triggered from a specific checklist item.
+          // Only use the AI suggestion when no category was pre-selected.
+          selectedSlug: preselectedSlug ?? result.suggested_slug ?? 'ovrig',
           storagePath: urlResult.path,
           contentHash: hash,
           // Warn if AI returned partial or no content so the user knows to fill in manually
@@ -727,6 +730,15 @@ export function SmartUpload() {
 
   const handleDragLeave = useCallback(() => setIsDragging(false), [])
 
+  // Register this component's processFiles so ChecklistSection can trigger it via context.
+  // We use a ref so the handler always calls the latest version of processFiles.
+  const processFilesRef = useRef(processFiles)
+  processFilesRef.current = processFiles
+  useEffect(() => {
+    return registerUploadHandler((files, slug) => processFilesRef.current(files, slug))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const doneItems = items.filter((i) => i.status === 'done')
   const doneCount = doneItems.length
   const allFinished = items.length > 0 && items.every((i) => i.status === 'done' || i.status === 'error')
@@ -745,53 +757,58 @@ export function SmartUpload() {
 
   const showOverlay = items.length > 0
 
+  const overlayElement = showOverlay ? (
+    <UploadOverlay
+      analyzingItems={analyzingItems}
+      readyItems={readyItems}
+      doneItems={doneItems}
+      allDone={allDone}
+      isSaving={isSavingAll}
+      saveError={saveError}
+      canSaveAll={canSaveAll}
+      identity={identity as UploaderName | null}
+      onChange={updateItem}
+      onSetFallbackIdentity={setFallbackIdentity}
+      onSave={handleSaveAll}
+      onClose={() => { setIsOpen(false); setItems([]) }}
+    />
+  ) : null
+
   if (!isOpen) {
     return (
-      <button
-        type="button"
-        onClick={() => setIsOpen(true)}
-        className="flex w-full items-center justify-center gap-2.5"
-        style={{
-          background: 'var(--foreground)',
-          color: 'var(--card)',
-          border: 'none',
-          borderRadius: '10px',
-          padding: '0.875rem 1.5rem',
-          fontSize: '0.875rem',
-          fontWeight: 600,
-          cursor: 'pointer',
-          marginBottom: '0',
-          transition: 'opacity 0.15s',
-        }}
-        onMouseEnter={e => (e.currentTarget.style.opacity = '0.88')}
-        onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
-      >
-        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
-        </svg>
-        Ladda upp dokument
-      </button>
+      <>
+        {overlayElement}
+        <button
+          type="button"
+          onClick={() => setIsOpen(true)}
+          className="flex w-full items-center justify-center gap-2.5"
+          style={{
+            background: 'var(--foreground)',
+            color: 'var(--card)',
+            border: 'none',
+            borderRadius: '10px',
+            padding: '0.875rem 1.5rem',
+            fontSize: '0.875rem',
+            fontWeight: 600,
+            cursor: 'pointer',
+            marginBottom: '0',
+            transition: 'opacity 0.15s',
+          }}
+          onMouseEnter={e => (e.currentTarget.style.opacity = '0.88')}
+          onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+        >
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
+          </svg>
+          Ladda upp dokument
+        </button>
+      </>
     )
   }
 
   return (
     <>
-    {showOverlay && (
-      <UploadOverlay
-        analyzingItems={analyzingItems}
-        readyItems={readyItems}
-        doneItems={doneItems}
-        allDone={allDone}
-        isSaving={isSavingAll}
-        saveError={saveError}
-        canSaveAll={canSaveAll}
-        identity={identity as UploaderName | null}
-        onChange={updateItem}
-        onSetFallbackIdentity={setFallbackIdentity}
-        onSave={handleSaveAll}
-        onClose={() => { setIsOpen(false); setItems([]) }}
-      />
-    )}
+    {overlayElement}
     <div
       style={{
         background: 'var(--card)',

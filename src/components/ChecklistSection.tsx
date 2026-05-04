@@ -1,13 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { CHECKLIST_ITEMS, groupItemsByCategory, CATEGORY_NAV_ID, type ChecklistItem } from '@/data/checklist-items'
-import { InlineUploadForm } from '@/components/InlineUploadForm'
 import { CommentThread } from '@/components/CommentThread'
 import { DeleteButton } from '@/components/DeleteButton'
 import { updateDocument } from '@/actions/update-document'
 import { useIdentityContext } from '@/context/IdentityContext'
+import { useSmartUpload } from '@/context/SmartUploadContext'
 import type { DocumentUpload } from '@/types/document'
 import type { Comment } from '@/types/comment'
 
@@ -116,11 +116,11 @@ interface ChecklistItemRowProps {
   item: ChecklistItem
   uploads: DocumentUpload[]
   commentsBySlug: Record<string, Comment[]>
-  isActive: boolean
-  onToggle: () => void
 }
 
-function ChecklistItemRow({ item, uploads, commentsBySlug, isActive, onToggle }: ChecklistItemRowProps) {
+function ChecklistItemRow({ item, uploads, commentsBySlug }: ChecklistItemRowProps) {
+  const { processFiles } = useSmartUpload()
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const hasUploads = uploads.length > 0
   const sectionComments = commentsBySlug[item.slug] ?? []
 
@@ -172,10 +172,10 @@ function ChecklistItemRow({ item, uploads, commentsBySlug, isActive, onToggle }:
         {/* Upload action */}
         <button
           type="button"
-          onClick={onToggle}
+          onClick={() => fileInputRef.current?.click()}
           className="shrink-0 text-xs font-medium transition-colors"
           style={{
-            color: isActive ? 'var(--muted)' : 'var(--accent)',
+            color: 'var(--accent)',
             background: 'none',
             border: 'none',
             cursor: 'pointer',
@@ -183,30 +183,29 @@ function ChecklistItemRow({ item, uploads, commentsBySlug, isActive, onToggle }:
             textDecoration: 'underline',
           }}
         >
-          {isActive ? 'Avbryt' : hasUploads ? '+ Lägg till' : '+ Ladda upp'}
+          {hasUploads ? '+ Lägg till' : '+ Ladda upp'}
         </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".pdf,application/pdf"
+          className="sr-only"
+          onChange={(e) => {
+            const files = Array.from(e.target.files ?? [])
+            if (files.length) processFiles(files, item.slug)
+            e.target.value = ''
+          }}
+        />
       </div>
-
-      {isActive && (
-        <div style={{ paddingBottom: '1.5rem' }}>
-          <InlineUploadForm key={item.slug} slug={item.slug} onCancel={onToggle} />
-        </div>
-      )}
     </div>
   )
 }
 
 export function ChecklistSection({ uploadsBySlug, commentsBySlug }: ChecklistSectionProps) {
-  const [activeSlug, setActiveSlug] = useState<string | null>(null)
-
   const uploadedCount = CHECKLIST_ITEMS.filter(
     (item) => (uploadsBySlug[item.slug]?.length ?? 0) > 0,
   ).length
   const totalCount = CHECKLIST_ITEMS.length
-
-  function handleToggle(slug: string) {
-    setActiveSlug((current) => (current === slug ? null : slug))
-  }
 
   const groupedItems = groupItemsByCategory(CHECKLIST_ITEMS)
 
@@ -273,8 +272,6 @@ export function ChecklistSection({ uploadsBySlug, commentsBySlug }: ChecklistSec
                   item={item}
                   uploads={uploadsBySlug[item.slug] ?? []}
                   commentsBySlug={commentsBySlug}
-                  isActive={activeSlug === item.slug}
-                  onToggle={() => handleToggle(item.slug)}
                 />
               ))}
             </div>
