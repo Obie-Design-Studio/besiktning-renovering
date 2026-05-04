@@ -113,7 +113,9 @@ function UploadOverlay({
   }, [step, firstAnalyzing?.id])
 
   const isAnalyzing = analyzingItems.length > 0
-  const allErrored = !isAnalyzing && readyItems.length === 0 && !allDone
+  // Only show error phase after a save attempt fully completes with no successes.
+  // !isSaving prevents a false flash while items are mid-transition through 'saving' status.
+  const allErrored = !isAnalyzing && !isSaving && readyItems.length === 0 && !allDone
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }}>
