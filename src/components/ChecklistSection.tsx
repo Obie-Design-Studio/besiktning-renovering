@@ -112,99 +112,60 @@ function UploadedFile({
   )
 }
 
-interface ChecklistItemRowProps {
-  item: ChecklistItem
-  uploads: DocumentUpload[]
-  commentsBySlug: Record<string, Comment[]>
-}
-
-function ChecklistItemRow({ item, uploads, commentsBySlug }: ChecklistItemRowProps) {
+/** A single required-but-missing item shown in the section header area, with its own upload trigger. */
+function MissingRequiredItem({ item }: { item: ChecklistItem }) {
   const { processFiles } = useSmartUpload()
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const hasUploads = uploads.length > 0
-  const sectionComments = commentsBySlug[item.slug] ?? []
-
   return (
-    <div style={{ borderBottom: '1px solid var(--border)' }} className="last:border-0">
-      <div className="flex items-start gap-4 py-4">
-        {/* Status dot */}
-        <div style={{ marginTop: '2px', flexShrink: 0 }}>
-          {hasUploads ? (
-            <div style={{ width: '18px', height: '18px', borderRadius: '50%', background: '#16A34A', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-label="Klar">
-                <path d="M2 5l2.5 2.5L8 3" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </div>
-          ) : item.required ? (
-            <div style={{ width: '18px', height: '18px', borderRadius: '50%', background: '#DC2626', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Obligatoriskt dokument saknas">
-              <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-label="Obligatoriskt">
-                <path d="M5 2.5V5.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
-                <circle cx="5" cy="7.5" r="0.75" fill="white" />
-              </svg>
-            </div>
-          ) : (
-            <div style={{ width: '18px', height: '18px', borderRadius: '50%', border: '1.5px solid var(--border)', background: 'transparent' }} aria-label="Saknas" />
-          )}
-        </div>
+    <li style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '1rem' }}>
+      <span style={{ fontSize: '0.8125rem', color: '#DC2626' }}>{item.title}</span>
+      <button
+        type="button"
+        onClick={() => fileInputRef.current?.click()}
+        style={{ fontSize: '0.75rem', fontWeight: 500, color: '#DC2626', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', flexShrink: 0 }}
+      >
+        + Ladda upp
+      </button>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".pdf,application/pdf"
+        className="sr-only"
+        onChange={(e) => {
+          const files = Array.from(e.target.files ?? [])
+          if (files.length) processFiles(files, item.slug)
+          e.target.value = ''
+        }}
+      />
+    </li>
+  )
+}
 
-        {/* Content */}
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>{item.title}</p>
-          <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>{item.description}</p>
-
-          {/* Required but missing — explicit callout for the builder */}
-          {item.required && !hasUploads && (
-            <p className="text-xs mt-1" style={{ color: '#DC2626', fontWeight: 500 }}>
-              Obligatoriskt — detta dokument saknas och behöver laddas upp inför besiktningen.
-            </p>
-          )}
-
-          {/* Uploaded files — each with its own comment thread */}
-          {hasUploads && (
-            <div style={{ borderTop: '1px solid var(--border)', marginTop: '0.75rem' }}>
-              {uploads.map((upload) => (
-                <UploadedFile
-                  key={upload.id}
-                  upload={upload}
-                  comments={commentsBySlug[`file:${upload.id}`] ?? []}
-                />
-              ))}
-            </div>
-          )}
-
-          {/* Section-level comment thread — only shown when no files uploaded yet */}
-          {!hasUploads && <CommentThread slug={item.slug} comments={sectionComments} />}
-        </div>
-
-        {/* Upload action */}
-        <button
-          type="button"
-          onClick={() => fileInputRef.current?.click()}
-          className="shrink-0 text-xs font-medium transition-colors"
-          style={{
-            color: 'var(--accent)',
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            padding: '2px 0',
-            textDecoration: 'underline',
-          }}
-        >
-          {hasUploads ? '+ Lägg till' : '+ Ladda upp'}
-        </button>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".pdf,application/pdf"
-          className="sr-only"
-          onChange={(e) => {
-            const files = Array.from(e.target.files ?? [])
-            if (files.length) processFiles(files, item.slug)
-            e.target.value = ''
-          }}
-        />
-      </div>
-    </div>
+/** Upload trigger used for the general "+ Lägg till" button on a category card. */
+function AddDocButton({ slug }: { slug: string }) {
+  const { processFiles } = useSmartUpload()
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => fileInputRef.current?.click()}
+        style={{ fontSize: '0.75rem', fontWeight: 500, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
+      >
+        + Lägg till
+      </button>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".pdf,application/pdf"
+        className="sr-only"
+        onChange={(e) => {
+          const files = Array.from(e.target.files ?? [])
+          if (files.length) processFiles(files, slug)
+          e.target.value = ''
+        }}
+      />
+    </>
   )
 }
 
@@ -224,7 +185,7 @@ export function ChecklistSection({ uploadsBySlug, commentsBySlug }: ChecklistSec
           Dokumentation
         </h2>
 
-        {/* Mandatory documents summary */}
+        {/* Top-level mandatory summary banner */}
         {allRequiredDone ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', padding: '0.75rem 1rem', borderRadius: '8px', background: '#F0FDF4', border: '1px solid #BBF7D0' }}>
             <div style={{ width: '18px', height: '18px', borderRadius: '50%', background: '#16A34A', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -239,56 +200,81 @@ export function ChecklistSection({ uploadsBySlug, commentsBySlug }: ChecklistSec
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0 }}><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
               <p style={{ fontSize: '0.875rem', fontWeight: 600, color: '#B91C1C' }}>
-                {missingRequired.length === 1
-                  ? '1 obligatoriskt dokument saknas'
-                  : `${missingRequired.length} obligatoriska dokument saknas`}
+                {missingRequired.length === 1 ? '1 obligatoriskt dokument saknas' : `${missingRequired.length} obligatoriska dokument saknas`}
               </p>
             </div>
             <ul style={{ margin: 0, padding: '0 0 0 1.5rem', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
               {missingRequired.map((item) => (
-                <li key={item.slug} style={{ fontSize: '0.8125rem', color: '#DC2626' }}>
-                  {item.title}
-                </li>
+                <li key={item.slug} style={{ fontSize: '0.8125rem', color: '#DC2626' }}>{item.title}</li>
               ))}
             </ul>
           </div>
         )}
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
         {groupedItems.map(([category, items]) => {
-          return (
-          <div key={category} id={CATEGORY_NAV_ID[category]}>
-            <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted)', marginBottom: '0.25rem' }}>
-              {category}
-            </p>
-            {CATEGORY_DESCRIPTIONS[category] && (
-              <p style={{ fontSize: '0.8125rem', color: 'var(--muted)', lineHeight: 1.55, marginBottom: '0.625rem' }}>
-                {CATEGORY_DESCRIPTIONS[category]}
-              </p>
-            )}
+          // All uploads for this category, flattened and in upload order
+          const categoryUploads = items.flatMap((item) => uploadsBySlug[item.slug] ?? [])
+          // Required items in this category that still have no uploads
+          const categoryMissingRequired = items.filter(
+            (item) => item.required && (uploadsBySlug[item.slug]?.length ?? 0) === 0,
+          )
+          // Default slug for the general "add" button — first item in the category
+          const defaultSlug = items[0]?.slug ?? 'ovrig'
 
-            <div
-              style={{
-                background: 'var(--card)',
-                border: '1px solid var(--border)',
-                borderRadius: '12px',
-                overflow: 'hidden',
-              }}
-            >
-              {/* Document rows */}
-              <div style={{ padding: '0 1.25rem' }}>
-              {items.map((item) => (
-                <ChecklistItemRow
-                  key={item.slug}
-                  item={item}
-                  uploads={uploadsBySlug[item.slug] ?? []}
-                  commentsBySlug={commentsBySlug}
-                />
-              ))}
+          return (
+            <div key={category} id={CATEGORY_NAV_ID[category]}>
+
+              {/* ── Section header (outside the card) ── */}
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem', marginBottom: '0.5rem' }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted)', marginBottom: '0.25rem' }}>
+                    {category}
+                  </p>
+                  {CATEGORY_DESCRIPTIONS[category] && (
+                    <p style={{ fontSize: '0.8125rem', color: 'var(--muted)', lineHeight: 1.55 }}>
+                      {CATEGORY_DESCRIPTIONS[category]}
+                    </p>
+                  )}
+                  {/* Required items missing in this category */}
+                  {categoryMissingRequired.length > 0 && (
+                    <div style={{ marginTop: '0.625rem' }}>
+                      <p style={{ fontSize: '0.75rem', fontWeight: 600, color: '#DC2626', marginBottom: '0.3rem' }}>
+                        Obligatoriska handlingar som saknas:
+                      </p>
+                      <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                        {categoryMissingRequired.map((item) => (
+                          <MissingRequiredItem key={item.slug} item={item} />
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+                <AddDocButton slug={defaultSlug} />
               </div>
+
+              {/* ── White card — uploaded files only ── */}
+              <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '12px', overflow: 'hidden' }}>
+                {categoryUploads.length > 0 ? (
+                  <div style={{ padding: '0 1.25rem' }}>
+                    {categoryUploads.map((upload) => (
+                      <div key={upload.id} style={{ borderBottom: '1px solid var(--border)' }} className="last:border-0">
+                        <UploadedFile
+                          upload={upload}
+                          comments={commentsBySlug[`file:${upload.id}`] ?? []}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p style={{ padding: '1.5rem 1.25rem', textAlign: 'center', fontSize: '0.8125rem', color: 'var(--muted)' }}>
+                    Inga dokument uppladdade ännu.
+                  </p>
+                )}
+              </div>
+
             </div>
-          </div>
           )
         })}
       </div>
