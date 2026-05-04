@@ -197,6 +197,16 @@ function UploadOverlay({
                     {item.file?.name ?? item.linkUrl}
                   </p>
 
+                  {/* AI failure warning */}
+                  {item.errorMessage && (
+                    <div style={{ display: 'flex', gap: '0.5rem', padding: '0.625rem 0.75rem', borderRadius: '8px', background: '#FFFBEB', border: '1px solid #FDE68A' }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B45309" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, marginTop: '1px' }}><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+                      <p style={{ fontSize: '0.8125rem', color: '#92400E', margin: 0 }}>
+                        AI-analysen misslyckades — fyll i fälten manuellt.
+                      </p>
+                    </div>
+                  )}
+
                   {/* Category */}
                   <div>
                     <label style={{ display: 'block', fontSize: '0.6875rem', fontWeight: 600, color: 'var(--muted)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Kategori</label>
@@ -208,9 +218,12 @@ function UploadOverlay({
 
                   {/* Title */}
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.6875rem', fontWeight: 600, color: 'var(--muted)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Titel</label>
+                    <label style={{ display: 'block', fontSize: '0.6875rem', fontWeight: 600, color: 'var(--muted)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      Titel{!item.title.trim() && <span style={{ color: '#DC2626', marginLeft: '4px' }}>*</span>}
+                    </label>
                     <input type="text" value={item.title} onChange={(e) => onChange(item.id, { title: e.target.value })} disabled={isSaving}
-                      style={{ width: '100%', borderRadius: '7px', border: '1.5px solid var(--border)', background: 'var(--background)', padding: '0.5rem 0.625rem', fontSize: '0.8125rem', color: 'var(--foreground)', outline: 'none' }} />
+                      placeholder="Skriv en kort titel…"
+                      style={{ width: '100%', borderRadius: '7px', border: `1.5px solid ${!item.title.trim() ? '#FCA5A5' : 'var(--border)'}`, background: 'var(--background)', padding: '0.5rem 0.625rem', fontSize: '0.8125rem', color: 'var(--foreground)', outline: 'none' }} />
                   </div>
 
                   {/* Description */}
