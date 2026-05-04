@@ -7,9 +7,10 @@ export { NAV_ITEMS }
 
 interface StickyNavProps {
   counts?: Record<string, number>
+  missingRequired?: Record<string, number>
 }
 
-export function StickyNav({ counts = {} }: StickyNavProps) {
+export function StickyNav({ counts = {}, missingRequired = {} }: StickyNavProps) {
   const [activeId, setActiveId] = useState<string>('nav-info')
 
   useEffect(() => {
@@ -59,6 +60,7 @@ export function StickyNav({ counts = {} }: StickyNavProps) {
       {NAV_ITEMS.map(({ id, label }) => {
         const isActive = activeId === id
         const count = counts[id] ?? 0
+        const missing = missingRequired[id] ?? 0
         return (
           <button
             key={id}
@@ -85,20 +87,42 @@ export function StickyNav({ counts = {} }: StickyNavProps) {
               height: '5px',
               borderRadius: '50%',
               flexShrink: 0,
-              background: isActive ? 'rgba(255,255,255,0.8)' : count > 0 ? 'var(--accent)' : 'var(--border)',
+              background: isActive
+                ? 'rgba(255,255,255,0.8)'
+                : missing > 0
+                  ? '#DC2626'
+                  : count > 0
+                    ? 'var(--accent)'
+                    : 'var(--border)',
               transition: 'background 0.15s',
             }} />
             <span style={{
               fontSize: '0.6875rem',
               fontWeight: isActive ? 600 : 400,
-              color: isActive ? '#ffffff' : 'var(--muted)',
+              color: isActive ? '#ffffff' : missing > 0 ? '#DC2626' : 'var(--muted)',
               transition: 'color 0.15s',
               letterSpacing: '0.01em',
               flex: 1,
             }}>
               {label}
             </span>
-            {count > 0 && (
+            {missing > 0 && !isActive && (
+              <span style={{
+                fontSize: '0.625rem',
+                fontWeight: 700,
+                lineHeight: 1,
+                padding: '2px 5px',
+                borderRadius: '20px',
+                background: '#FEE2E2',
+                color: '#DC2626',
+                flexShrink: 0,
+              }}
+                title={`${missing} obligatoriskt dokument saknas`}
+              >
+                !
+              </span>
+            )}
+            {missing === 0 && count > 0 && (
               <span style={{
                 fontSize: '0.625rem',
                 fontWeight: 600,
