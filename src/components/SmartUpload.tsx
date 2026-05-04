@@ -96,11 +96,21 @@ function UploadOverlay({
   const [step, setStep] = useState(0)
   const firstAnalyzing = analyzingItems[0]
 
+  // Delay (ms) before advancing FROM each step to the next.
+  // Slows down progressively so no single step feels instant or endless.
+  const STEP_DELAYS = [900, 2200, 2600, 2800] // step 4 stays active until API responds
+
   useEffect(() => {
     setStep(0)
-    const id = setInterval(() => setStep((s) => Math.min(s + 1, ANALYSIS_STEPS.length - 1)), 1100)
-    return () => clearInterval(id)
   }, [firstAnalyzing?.id])
+
+  useEffect(() => {
+    const delay = STEP_DELAYS[step]
+    if (delay === undefined) return // last step — wait for API, don't advance
+    const id = setTimeout(() => setStep((s) => s + 1), delay)
+    return () => clearTimeout(id)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, firstAnalyzing?.id])
 
   const isAnalyzing = analyzingItems.length > 0
   const allErrored = !isAnalyzing && readyItems.length === 0 && !allDone
