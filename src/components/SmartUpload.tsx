@@ -89,6 +89,26 @@ interface UploadOverlayProps {
   onClose: () => void
 }
 
+/**
+ * Estimates step-transition delays based on file size.
+ * Larger files take longer to analyse, so we spread the animation budget
+ * proportionally so no step feels instant or endless.
+ * The final step stays active indefinitely until the real API responds.
+ */
+function estimateStepDelays(fileSizeBytes: number | null): number[] {
+  const estimatedMs =
+    fileSizeBytes == null ? 3500          // URL — unknown size, use medium
+    : fileSizeBytes < 80_000 ? 1500       // < 80 KB  — simple one-pager
+    : fileSizeBytes < 400_000 ? 2800      // 80–400 KB — typical PDF
+    : fileSizeBytes < 1_500_000 ? 4500    // 400 KB–1.5 MB — multi-page
+    : 7000                                // > 1.5 MB — large / many pages
+
+  // Drive animation through ~75 % of estimated time; last step waits for API.
+  const budget = estimatedMs * 0.75
+  // Slightly increasing weights so later steps feel more deliberate.
+  return [0.20, 0.25, 0.27, 0.28].map((w) => Math.round(w * budget))
+}
+
 function UploadOverlay({
   analyzingItems, readyItems, doneItems, allDone,
   isSaving, saveError, canSaveAll,
@@ -97,17 +117,16 @@ function UploadOverlay({
   const [step, setStep] = useState(0)
   const firstAnalyzing = analyzingItems[0]
 
-  // Delay (ms) before advancing FROM each step to the next.
-  // Slows down progressively so no single step feels instant or endless.
-  const STEP_DELAYS = [900, 2200, 2600, 2800] // step 4 stays active until API responds
+  // Recompute delays whenever the file being analysed changes.
+  const stepDelays = estimateStepDelays(firstAnalyzing?.file?.size ?? null)
 
   useEffect(() => {
     setStep(0)
   }, [firstAnalyzing?.id])
 
   useEffect(() => {
-    const delay = STEP_DELAYS[step]
-    if (delay === undefined) return // last step — wait for API, don't advance
+    const delay = stepDelays[step]
+    if (delay === undefined) return // last step — wait for API response
     const id = setTimeout(() => setStep((s) => s + 1), delay)
     return () => clearTimeout(id)
   // eslint-disable-next-line react-hooks/exhaustive-deps
