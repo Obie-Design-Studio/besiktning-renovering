@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { CHECKLIST_ITEMS } from '@/data/checklist-items'
 import { saveDocumentUpload } from '@/actions/save-document-upload'
@@ -73,76 +73,118 @@ const ANALYSIS_STEPS = [
   'Väljer kategori',
 ]
 
-function AnalyzingState() {
+function AnalysisOverlay({ fileName, count }: { fileName: string; count: number }) {
   const [step, setStep] = useState(0)
 
   useEffect(() => {
+    setStep(0)
     const id = setInterval(() => {
       setStep((s) => Math.min(s + 1, ANALYSIS_STEPS.length - 1))
     }, 1100)
     return () => clearInterval(id)
-  }, [])
+  }, [fileName])
 
   return (
-    <div style={{ padding: '1.25rem 0.25rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.25rem' }}>
-      {/* Spinner */}
-      <div style={{ position: 'relative', width: '40px', height: '40px' }}>
-        <svg className="animate-spin" style={{ position: 'absolute', inset: 0, color: 'var(--accent)' }} viewBox="0 0 40 40" fill="none" aria-hidden="true">
-          <circle cx="20" cy="20" r="16" stroke="currentColor" strokeWidth="3" strokeOpacity="0.15" />
-          <path d="M20 4a16 16 0 0 1 16 16" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-        </svg>
-      </div>
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 100,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '1rem',
+        background: 'rgba(0,0,0,0.45)',
+        backdropFilter: 'blur(6px)',
+        WebkitBackdropFilter: 'blur(6px)',
+      }}
+    >
+      <div
+        style={{
+          background: 'var(--card)',
+          border: '1px solid var(--border)',
+          borderRadius: '20px',
+          padding: '2rem 2rem 1.75rem',
+          width: '100%',
+          maxWidth: '360px',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '1.5rem',
+          boxShadow: '0 24px 64px rgba(0,0,0,0.18)',
+        }}
+      >
+        {/* Spinner */}
+        <div style={{ position: 'relative', width: '48px', height: '48px' }}>
+          <svg className="animate-spin" style={{ position: 'absolute', inset: 0, color: 'var(--accent)' }} viewBox="0 0 48 48" fill="none" aria-hidden="true">
+            <circle cx="24" cy="24" r="20" stroke="currentColor" strokeWidth="3" strokeOpacity="0.12" />
+            <path d="M24 4a20 20 0 0 1 20 20" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+          </svg>
+        </div>
 
-      {/* Heading */}
-      <div style={{ textAlign: 'center' }}>
-        <p style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--foreground)', marginBottom: '0.2rem' }}>
-          AI analyserar dokumentet
-        </p>
-        <p style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>
-          Fyller i titel, beskrivning och kategori automatiskt
-        </p>
-      </div>
-
-      {/* Step list */}
-      <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%', maxWidth: '240px' }}>
-        {ANALYSIS_STEPS.map((label, i) => {
-          const isDone = i < step
-          const isActive = i === step
-          return (
-            <li
-              key={label}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.625rem',
-                fontSize: '0.8125rem',
-                color: isDone ? '#16A34A' : isActive ? 'var(--foreground)' : 'var(--muted)',
-                opacity: i > step + 1 ? 0.4 : 1,
-                transition: 'color 0.3s, opacity 0.3s',
-              }}
+        {/* Title */}
+        <div style={{ textAlign: 'center' }}>
+          <p style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--foreground)', marginBottom: '0.3rem' }}>
+            AI analyserar dokumentet
+          </p>
+          <p style={{ fontSize: '0.8125rem', color: 'var(--muted)', maxWidth: '260px' }}>
+            {count > 1
+              ? `Analyserar ${count} filer — fyller i titel, beskrivning och kategori`
+              : `Fyller i titel, beskrivning och kategori automatiskt`}
+          </p>
+          {fileName && (
+            <p
+              className="truncate"
+              style={{ fontSize: '0.75rem', color: 'var(--muted)', marginTop: '0.4rem', maxWidth: '260px', opacity: 0.7 }}
+              title={fileName}
             >
-              {/* Icon */}
-              <span style={{ flexShrink: 0, width: '16px', height: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                {isDone ? (
-                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-                    <circle cx="7" cy="7" r="7" fill="#16A34A" />
-                    <path d="M4 7l2 2 4-4" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                ) : isActive ? (
-                  <svg className="animate-spin" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-                    <circle cx="7" cy="7" r="5.5" stroke="var(--accent)" strokeWidth="2" strokeOpacity="0.2" />
-                    <path d="M7 1.5a5.5 5.5 0 0 1 5.5 5.5" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" />
-                  </svg>
-                ) : (
-                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--border)', display: 'block' }} />
-                )}
-              </span>
-              {label}
-            </li>
-          )
-        })}
-      </ul>
+              {fileName}
+            </p>
+          )}
+        </div>
+
+        {/* Step list */}
+        <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '0.625rem', width: '100%' }}>
+          {ANALYSIS_STEPS.map((label, i) => {
+            const isDone = i < step
+            const isActive = i === step
+            return (
+              <li
+                key={label}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  fontSize: '0.875rem',
+                  color: isDone ? '#16A34A' : isActive ? 'var(--foreground)' : 'var(--muted)',
+                  opacity: i > step + 1 ? 0.35 : 1,
+                  transition: 'color 0.3s, opacity 0.3s',
+                  fontWeight: isActive ? 500 : 400,
+                }}
+              >
+                <span style={{ flexShrink: 0, width: '18px', height: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {isDone ? (
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                      <circle cx="8" cy="8" r="8" fill="#16A34A" />
+                      <path d="M4.5 8l2.5 2.5L11.5 5.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  ) : isActive ? (
+                    <svg className="animate-spin" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                      <circle cx="8" cy="8" r="6" stroke="var(--accent)" strokeWidth="2" strokeOpacity="0.2" />
+                      <path d="M8 2a6 6 0 0 1 6 6" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" />
+                    </svg>
+                  ) : (
+                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--border)', display: 'block', margin: '0 auto' }} />
+                  )}
+                </span>
+                {label}
+              </li>
+            )
+          })}
+        </ul>
+      </div>
     </div>
+    </>
   )
 }
 
@@ -216,8 +258,16 @@ function FileCard({ item, identity, onChange, onRemove, onSetFallbackIdentity }:
       {/* Body */}
       <div style={{ padding: '0.875rem 1.25rem' }}>
 
-      {/* Analyzing */}
-      {isAnalyzing && <AnalyzingState />}
+      {/* Analyzing — overlay handles the detailed progress, show minimal placeholder */}
+      {isAnalyzing && (
+        <div style={{ height: '2rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <svg className="h-3.5 w-3.5 animate-spin" style={{ color: 'var(--muted)' }} fill="none" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" strokeOpacity="0.2" />
+            <path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="4" strokeLinecap="round" />
+          </svg>
+          <span style={{ fontSize: '0.8125rem', color: 'var(--muted)' }}>Analyserar…</span>
+        </div>
+      )}
 
       {isDone && (
         <p style={{ fontSize: '0.8125rem', color: '#16A34A', fontWeight: 500 }}>
@@ -569,6 +619,9 @@ export function SmartUpload() {
     return () => clearTimeout(timer)
   }, [allDone])
 
+  const firstAnalyzing = analyzingItems[0]
+  const showOverlay = analyzingItems.length > 0
+
   if (!isOpen) {
     return (
       <button
@@ -599,6 +652,13 @@ export function SmartUpload() {
   }
 
   return (
+    <>
+    {showOverlay && (
+      <AnalysisOverlay
+        fileName={firstAnalyzing.file?.name ?? firstAnalyzing.linkUrl ?? ''}
+        count={analyzingItems.length}
+      />
+    )}
     <div
       style={{
         background: 'var(--card)',
