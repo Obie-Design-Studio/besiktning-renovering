@@ -87,7 +87,7 @@ export function InfoSection({ uploadButton }: InfoSectionProps) {
           Schlyters Väg 4
         </h1>
         <p className="text-sm" style={{ color: 'var(--muted)' }}>
-          Lund 25:16 &nbsp;·&nbsp; 224 60 Lund &nbsp;·&nbsp; Tisdag 5 maj 2026, kl 09:00 &nbsp;·&nbsp; HF17
+          Lund 25:16 &nbsp;·&nbsp; 224 60 Lund &nbsp;·&nbsp; Torsdag 7 maj 2026, kl 09:00 &nbsp;·&nbsp; HF17
         </p>
       </div>
 
@@ -154,7 +154,7 @@ export function InfoSection({ uploadButton }: InfoSectionProps) {
           tasks={[
             'Lämna egenkontroller (VVS, El, Bygg, Våtrum)',
             'Lämna provtrycknings- och säkervattensprotokoll',
-            'Närvara vid besiktningen 5 maj',
+            'Närvara vid besiktningen 7 maj',
           ]}
         />
       </div>
