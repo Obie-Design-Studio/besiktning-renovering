@@ -235,7 +235,7 @@ export function ChecklistSection({ uploadsBySlug, commentsBySlug }: ChecklistSec
               {/* ── White card — uploaded files only ── */}
               <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '12px', overflow: 'hidden' }}>
                 {categoryUploads.length > 0 ? (
-                  <div style={{ padding: '0 1.25rem' }}>
+                  <div style={{ padding: '0 1.25rem 1.25rem' }}>
                     {categoryUploads.map((upload) => (
                       <div key={upload.id} style={{ borderBottom: '1px solid var(--border)' }} className="last:border-0">
                         <UploadedFile
