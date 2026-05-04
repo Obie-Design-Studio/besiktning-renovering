@@ -259,9 +259,14 @@ export function ChecklistSection({ uploadsBySlug, commentsBySlug }: ChecklistSec
         {groupedItems.map(([category, items]) => {
           return (
           <div key={category} id={CATEGORY_NAV_ID[category]}>
-            <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted)', marginBottom: '0.5rem' }}>
+            <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted)', marginBottom: '0.25rem' }}>
               {category}
             </p>
+            {CATEGORY_DESCRIPTIONS[category] && (
+              <p style={{ fontSize: '0.8125rem', color: 'var(--muted)', lineHeight: 1.55, marginBottom: '0.625rem' }}>
+                {CATEGORY_DESCRIPTIONS[category]}
+              </p>
+            )}
 
             <div
               style={{
@@ -271,15 +276,6 @@ export function ChecklistSection({ uploadsBySlug, commentsBySlug }: ChecklistSec
                 overflow: 'hidden',
               }}
             >
-              {/* Category description */}
-              {CATEGORY_DESCRIPTIONS[category] && (
-                <div style={{ padding: '0.875rem 1.25rem', borderBottom: '1px solid var(--border)' }}>
-                  <p style={{ fontSize: '0.8125rem', color: 'var(--muted)', lineHeight: 1.55 }}>
-                    {CATEGORY_DESCRIPTIONS[category]}
-                  </p>
-                </div>
-              )}
-
               {/* Document rows */}
               <div style={{ padding: '0 1.25rem' }}>
               {items.map((item) => (
