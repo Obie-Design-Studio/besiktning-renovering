@@ -80,7 +80,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const base64 = buffer.toString('base64')
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-2.0-flash',
       contents: [
         {
           parts: [
@@ -89,11 +89,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           ],
         },
       ],
-      config: {
-        // Disable thinking mode — this task doesn't need deep reasoning,
-        // and thinking mode causes timeouts on Vercel serverless functions.
-        thinkingConfig: { thinkingBudget: 0 },
-      },
     })
 
     const raw = response.text ?? ''
@@ -119,7 +114,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     const result: AnalyzeDocumentResponse = { title, description, suggested_slug: suggestedSlug }
     return NextResponse.json(result)
-  } catch {
+  } catch (err) {
+    console.error('[analyze-document] Gemini API error:', err)
     return NextResponse.json(
       {
         error:
