@@ -112,12 +112,6 @@ function UploadedFile({
   )
 }
 
-/** A single required-but-missing item shown in the section header area. */
-function MissingRequiredItem({ item }: { item: ChecklistItem }) {
-  return (
-    <li style={{ fontSize: '0.8125rem', color: '#DC2626' }}>{item.title}</li>
-  )
-}
 
 /** Upload trigger used for the general "+ Lägg till" button on a category card. */
 function AddDocButton({ slug }: { slug: string }) {
@@ -217,16 +211,10 @@ export function ChecklistSection({ uploadsBySlug, commentsBySlug }: ChecklistSec
                   )}
                   {/* Required items missing in this category */}
                   {categoryMissingRequired.length > 0 && (
-                    <div style={{ marginTop: '0.625rem' }}>
-                      <p style={{ fontSize: '0.75rem', fontWeight: 600, color: '#DC2626', marginBottom: '0.3rem' }}>
-                        Obligatoriska handlingar som saknas:
-                      </p>
-                      <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                        {categoryMissingRequired.map((item) => (
-                          <MissingRequiredItem key={item.slug} item={item} />
-                        ))}
-                      </ul>
-                    </div>
+                    <p style={{ fontSize: '0.8125rem', color: '#DC2626', marginTop: '0.4rem' }}>
+                      <span style={{ fontWeight: 600 }}>Saknas: </span>
+                      {categoryMissingRequired.map((item) => item.title).join(', ')}
+                    </p>
                   )}
                 </div>
                 <AddDocButton slug={defaultSlug} />
