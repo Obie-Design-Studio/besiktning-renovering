@@ -501,6 +501,7 @@ function FileCard({ item, identity, onChange, onRemove, onSetFallbackIdentity }:
 export function SmartUpload() {
   const { identity, setFallbackIdentity } = useIdentityContext()
   const [isOpen, setIsOpen] = useState(false)
+  const [panelDefaultSlug, setPanelDefaultSlug] = useState<string | undefined>(undefined)
   const [items, setItems] = useState<FileReviewItem[]>([])
   const [isDragging, setIsDragging] = useState(false)
   const [isSavingAll, setIsSavingAll] = useState(false)
@@ -540,7 +541,7 @@ export function SmartUpload() {
       status: 'analyzing',
       title: fallbackTitle,
       description: '',
-      selectedSlug: 'ovrig',
+      selectedSlug: panelDefaultSlug ?? 'ovrig',
       uploaderName: (identity as UploaderName) ?? 'Tobias',
     }
     setSaveError(null) // clear any error from a previous save attempt
@@ -572,7 +573,7 @@ export function SmartUpload() {
       status: 'analyzing',
       title: '',
       description: '',
-      selectedSlug: preselectedSlug ?? 'ovrig',
+      selectedSlug: preselectedSlug ?? panelDefaultSlug ?? 'ovrig',
       uploaderName: (identity as UploaderName) ?? 'Tobias',
     }))
 
@@ -730,12 +731,23 @@ export function SmartUpload() {
 
   const handleDragLeave = useCallback(() => setIsDragging(false), [])
 
-  // Register this component's processFiles so ChecklistSection can trigger it via context.
-  // We use a ref so the handler always calls the latest version of processFiles.
+  // Register handlers so the rest of the app can trigger uploads via context.
+  // Refs ensure we always call the latest version without re-registering.
   const processFilesRef = useRef(processFiles)
   processFilesRef.current = processFiles
+
+  function openPanel(slug?: string) {
+    setPanelDefaultSlug(slug)
+    setIsOpen(true)
+  }
+  const openPanelRef = useRef(openPanel)
+  openPanelRef.current = openPanel
+
   useEffect(() => {
-    return registerUploadHandler((files, slug) => processFilesRef.current(files, slug))
+    return registerUploadHandler(
+      (files, slug) => processFilesRef.current(files, slug),
+      (slug) => openPanelRef.current(slug),
+    )
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

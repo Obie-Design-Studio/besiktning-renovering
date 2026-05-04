@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { CHECKLIST_ITEMS, groupItemsByCategory, CATEGORY_NAV_ID, CATEGORY_DESCRIPTIONS, type ChecklistItem } from '@/data/checklist-items'
 import { CommentThread } from '@/components/CommentThread'
@@ -113,31 +113,17 @@ function UploadedFile({
 }
 
 
-/** Upload trigger used for the general "+ Lägg till" button on a category card. */
+/** Opens the full upload panel (file + URL) pre-pointed at a category slug. */
 function AddDocButton({ slug }: { slug: string }) {
-  const { processFiles } = useSmartUpload()
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const { openPanel } = useSmartUpload()
   return (
-    <>
-      <button
-        type="button"
-        onClick={() => fileInputRef.current?.click()}
-        style={{ fontSize: '0.75rem', fontWeight: 500, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
-      >
-        + Lägg till
-      </button>
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept=".pdf,application/pdf"
-        className="sr-only"
-        onChange={(e) => {
-          const files = Array.from(e.target.files ?? [])
-          if (files.length) processFiles(files, slug)
-          e.target.value = ''
-        }}
-      />
-    </>
+    <button
+      type="button"
+      onClick={() => openPanel(slug)}
+      style={{ fontSize: '0.75rem', fontWeight: 500, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', flexShrink: 0 }}
+    >
+      + Lägg till
+    </button>
   )
 }
 
@@ -224,8 +210,8 @@ export function ChecklistSection({ uploadsBySlug, commentsBySlug }: ChecklistSec
               <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '12px', overflow: 'hidden' }}>
                 {categoryUploads.length > 0 ? (
                   <div style={{ padding: '0 1.25rem 1.25rem' }}>
-                    {categoryUploads.map((upload) => (
-                      <div key={upload.id} style={{ borderBottom: '1px solid var(--border)' }} className="last:border-0">
+                    {categoryUploads.map((upload, idx) => (
+                      <div key={upload.id} style={idx < categoryUploads.length - 1 ? { borderBottom: '1px solid var(--border)' } : undefined}>
                         <UploadedFile
                           upload={upload}
                           comments={commentsBySlug[`file:${upload.id}`] ?? []}

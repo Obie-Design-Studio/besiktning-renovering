@@ -3,31 +3,43 @@
 import { createContext, useContext } from 'react'
 
 type ProcessFilesFn = (files: File[], preselectedSlug?: string) => void
+type OpenPanelFn = (preselectedSlug?: string) => void
 
 interface SmartUploadContextValue {
   processFiles: ProcessFilesFn
+  openPanel: OpenPanelFn
 }
 
 const SmartUploadContext = createContext<SmartUploadContextValue>({
   processFiles: () => {},
+  openPanel: () => {},
 })
 
-// Module-level handler — SmartUpload registers itself here when it mounts.
+// Module-level handlers — SmartUpload registers itself here when it mounts.
 // Safe because exactly one SmartUpload exists per page.
-let _handler: ProcessFilesFn = () => {}
+let _processFilesHandler: ProcessFilesFn = () => {}
+let _openPanelHandler: OpenPanelFn = () => {}
 
-/** SmartUpload calls this on mount to wire up its processFiles implementation. */
-export function registerUploadHandler(fn: ProcessFilesFn) {
-  _handler = fn
+/** SmartUpload calls this on mount to wire up its implementations. */
+export function registerUploadHandler(
+  processFiles: ProcessFilesFn,
+  openPanel: OpenPanelFn,
+) {
+  _processFilesHandler = processFiles
+  _openPanelHandler = openPanel
   return () => {
-    _handler = () => {}
+    _processFilesHandler = () => {}
+    _openPanelHandler = () => {}
   }
 }
 
 export function SmartUploadProvider({ children }: { children: React.ReactNode }) {
   return (
     <SmartUploadContext.Provider
-      value={{ processFiles: (files, slug) => _handler(files, slug) }}
+      value={{
+        processFiles: (files, slug) => _processFilesHandler(files, slug),
+        openPanel: (slug) => _openPanelHandler(slug),
+      }}
     >
       {children}
     </SmartUploadContext.Provider>
