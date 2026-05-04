@@ -5,6 +5,7 @@ import { SmartUpload } from '@/components/SmartUpload'
 import { ChecklistSection } from '@/components/ChecklistSection'
 import { ExtraDocsSection } from '@/components/ExtraDocsSection'
 import { StickyNav } from '@/components/StickyNav'
+import { UploadLog } from '@/components/UploadLog'
 import { NAV_ITEMS } from '@/data/nav-items'
 import { CHECKLIST_ITEMS, CATEGORY_NAV_ID } from '@/data/checklist-items'
 import type { DocumentUpload } from '@/types/document'
@@ -74,6 +75,7 @@ export default async function HomePage() {
       <div id="nav-info"><InfoSection uploadButton={<SmartUpload />} /></div>
       <ChecklistSection uploadsBySlug={checklistUploadsBySlug} commentsBySlug={commentsBySlug} />
       <div id="nav-ovrig"><ExtraDocsSection uploads={extraUploads} comments={commentsBySlug[EXTRA_SLUG] ?? []} commentsBySlug={commentsBySlug} /></div>
+      <UploadLog />
     </>
   )
 }
