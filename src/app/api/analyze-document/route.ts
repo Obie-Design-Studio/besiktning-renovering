@@ -96,8 +96,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       suggested_slug?: string
     }
 
-    const title = parsed.title ?? ''
-    const description = parsed.description ?? ''
+    const title = (parsed.title ?? '').trim()
+    const description = (parsed.description ?? '').trim()
     const suggestedSlug = VALID_SLUGS.has(parsed.suggested_slug ?? '')
       ? (parsed.suggested_slug ?? 'ovrig')
       : 'ovrig'

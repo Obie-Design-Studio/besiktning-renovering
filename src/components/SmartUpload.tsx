@@ -619,13 +619,18 @@ export function SmartUpload() {
       const { data: publicUrlData } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(urlResult.path)
       try {
         const result = await analyzeUrl(publicUrlData.publicUrl)
+        const aiTitle = result.title?.trim() ?? ''
+        const aiDescription = result.description?.trim() ?? ''
+        const aiWasComplete = aiTitle && aiDescription
         updateItem(item.id, {
           status: 'ready',
-          title: result.title || fallbackTitle,
-          description: result.description,
-          selectedSlug: result.suggested_slug,
+          title: aiTitle || fallbackTitle,
+          description: aiDescription,
+          selectedSlug: result.suggested_slug ?? 'ovrig',
           storagePath: urlResult.path,
           contentHash: hash,
+          // Warn if AI returned partial or no content so the user knows to fill in manually
+          errorMessage: aiWasComplete ? undefined : 'AI-analysen returnerade ofullständiga resultat — kontrollera och fyll i fälten nedan.',
         })
       } catch (err) {
         updateItem(item.id, {
