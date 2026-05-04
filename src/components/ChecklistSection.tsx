@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { CHECKLIST_ITEMS, groupItemsByCategory, CATEGORY_NAV_ID, type ChecklistItem } from '@/data/checklist-items'
+import { CHECKLIST_ITEMS, groupItemsByCategory, CATEGORY_NAV_ID, CATEGORY_DESCRIPTIONS, type ChecklistItem } from '@/data/checklist-items'
 import { CommentThread } from '@/components/CommentThread'
 import { DeleteButton } from '@/components/DeleteButton'
 import { updateDocument } from '@/actions/update-document'
@@ -276,9 +276,19 @@ export function ChecklistSection({ uploadsBySlug, commentsBySlug }: ChecklistSec
                 border: `1px solid ${hasMissingRequired ? '#FCA5A5' : 'var(--border)'}`,
                 borderRadius: '12px',
                 overflow: 'hidden',
-                padding: '0 1.25rem',
               }}
             >
+              {/* Category description */}
+              {CATEGORY_DESCRIPTIONS[category] && (
+                <div style={{ padding: '0.875rem 1.25rem', borderBottom: '1px solid var(--border)' }}>
+                  <p style={{ fontSize: '0.8125rem', color: 'var(--muted)', lineHeight: 1.55 }}>
+                    {CATEGORY_DESCRIPTIONS[category]}
+                  </p>
+                </div>
+              )}
+
+              {/* Document rows */}
+              <div style={{ padding: '0 1.25rem' }}>
               {items.map((item) => (
                 <ChecklistItemRow
                   key={item.slug}
@@ -287,6 +297,7 @@ export function ChecklistSection({ uploadsBySlug, commentsBySlug }: ChecklistSec
                   commentsBySlug={commentsBySlug}
                 />
               ))}
+              </div>
             </div>
           </div>
           )

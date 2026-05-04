@@ -87,6 +87,18 @@ export const CHECKLIST_ITEMS: ChecklistItem[] = [
   },
 ]
 
+/** Short explanation of what documentation is expected per category. */
+export const CATEGORY_DESCRIPTIONS: Record<string, string> = {
+  'VVS': 'Intyg och protokoll för VVS-installationer — provtryckning av rör, Säker Vatten-protokoll samt egenkontroll för utförda arbeten.',
+  'Våtrum': 'Egenkontroll och intyg för tätskikt i våtrum, utfört av certifierad hantverkare enligt gällande branschregler.',
+  'El': 'Egenkontroll för elinstallationer inklusive protokoll för isolationsmätning och jordfelsprovning.',
+  'Bygg': 'Egenkontroll som visar att byggnadsarbetena följt ritning, byggbeskrivning och gällande regelverk.',
+  'Ventilation': 'Dokumentation av ventilationsinstallationer. OVK krävs om ombyggnationen berör ventilationssystemet.',
+  'Drift & Underhåll': 'Instruktioner för skötsel och underhåll av installationer där tillverkare eller branschkrav ställer det.',
+  'Handlingar': 'Relationshandlingar, kontrakt och avtal som specificerar vad som ingår i uppdraget.',
+  'Garantier & Försäkringar': 'Försäkringsbevis och garantihandlingar — allrisk, ansvars- och färdigställandeförsäkring samt garantibevis.',
+}
+
 /** Maps category name → sticky nav anchor ID. */
 export const CATEGORY_NAV_ID: Record<string, string> = {
   'VVS': 'nav-vvs',
