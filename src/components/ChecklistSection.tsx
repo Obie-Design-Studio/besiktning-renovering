@@ -152,6 +152,13 @@ function ChecklistItemRow({ item, uploads, commentsBySlug }: ChecklistItemRowPro
           <p className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>{item.title}</p>
           <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>{item.description}</p>
 
+          {/* Required but missing — explicit callout for the builder */}
+          {item.required && !hasUploads && (
+            <p className="text-xs mt-1" style={{ color: '#DC2626', fontWeight: 500 }}>
+              Obligatoriskt — detta dokument saknas och behöver laddas upp inför besiktningen.
+            </p>
+          )}
+
           {/* Uploaded files — each with its own comment thread */}
           {hasUploads && (
             <div style={{ borderTop: '1px solid var(--border)', marginTop: '0.75rem' }}>
