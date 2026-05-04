@@ -103,10 +103,20 @@ function UploadOverlay({
   }, [firstAnalyzing?.id])
 
   const isAnalyzing = analyzingItems.length > 0
+  const allErrored = !isAnalyzing && readyItems.length === 0 && !allDone
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }}>
-      <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '20px', width: '100%', maxWidth: '440px', display: 'flex', flexDirection: 'column', boxShadow: '0 24px 64px rgba(0,0,0,0.2)', overflow: 'hidden', maxHeight: '90vh' }}>
+      <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '20px', width: '100%', maxWidth: '440px', display: 'flex', flexDirection: 'column', boxShadow: '0 24px 64px rgba(0,0,0,0.2)', overflow: 'hidden', maxHeight: '90vh', position: 'relative' }}>
+
+        {/* ── ALWAYS-VISIBLE CLOSE BUTTON (top-right) ── */}
+        {!isSaving && !allDone && (
+          <div style={{ position: 'absolute', top: 0, right: 0, zIndex: 1 }}>
+            <button type="button" onClick={onClose}
+              style={{ padding: '1rem 1.25rem', fontSize: '1rem', lineHeight: 1, color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer' }}
+              aria-label="Stäng">✕</button>
+          </div>
+        )}
 
         {/* ── ANALYZING PHASE ── */}
         {isAnalyzing && (
@@ -238,6 +248,25 @@ function UploadOverlay({
               </button>
             </div>
           </>
+        )}
+
+        {/* ── ERROR PHASE (all items failed, nothing to review) ── */}
+        {allErrored && (
+          <div style={{ padding: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', textAlign: 'center' }}>
+            <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#FEE2E2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 8v4M12 16h.01" stroke="#DC2626" strokeWidth="2.5" strokeLinecap="round"/><circle cx="12" cy="12" r="10" stroke="#DC2626" strokeWidth="2"/></svg>
+            </div>
+            <div>
+              <p style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--foreground)', marginBottom: '0.25rem' }}>Uppladdningen misslyckades</p>
+              <p style={{ fontSize: '0.8125rem', color: 'var(--muted)' }}>
+                {saveError ?? 'Något gick fel. Försök igen eller kontakta support.'}
+              </p>
+            </div>
+            <button type="button" onClick={onClose}
+              style={{ padding: '0.625rem 1.5rem', borderRadius: '8px', background: 'var(--foreground)', color: 'var(--card)', border: 'none', fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer' }}>
+              Stäng
+            </button>
+          </div>
         )}
 
         {/* ── DONE PHASE ── */}
