@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { GoogleGenAI } from '@google/genai'
 import { CHECKLIST_ITEMS } from '@/data/checklist-items'
 
+// Extend Vercel serverless timeout to 60s — PDF analysis can be slow for large files.
+export const maxDuration = 60
+
 export interface AnalyzeDocumentResponse {
   title: string
   description: string
@@ -86,6 +89,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           ],
         },
       ],
+      config: {
+        // Disable thinking mode — this task doesn't need deep reasoning,
+        // and thinking mode causes timeouts on Vercel serverless functions.
+        thinkingConfig: { thinkingBudget: 0 },
+      },
     })
 
     const raw = response.text ?? ''
