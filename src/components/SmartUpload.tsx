@@ -117,20 +117,13 @@ function UploadOverlay({
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }}>
-      <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '20px', width: '100%', maxWidth: '440px', display: 'flex', flexDirection: 'column', boxShadow: '0 24px 64px rgba(0,0,0,0.2)', overflow: 'hidden', maxHeight: '90vh', position: 'relative' }}>
-
-        {/* ── ALWAYS-VISIBLE CLOSE BUTTON (top-right) ── */}
-        {!isSaving && !allDone && (
-          <div style={{ position: 'absolute', top: 0, right: 0, zIndex: 1 }}>
-            <button type="button" onClick={onClose}
-              style={{ padding: '1rem 1.25rem', fontSize: '1rem', lineHeight: 1, color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer' }}
-              aria-label="Stäng">✕</button>
-          </div>
-        )}
+      <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '20px', width: '100%', maxWidth: '440px', display: 'flex', flexDirection: 'column', boxShadow: '0 24px 64px rgba(0,0,0,0.2)', overflow: 'hidden', maxHeight: '90vh' }}>
 
         {/* ── ANALYZING PHASE ── */}
         {isAnalyzing && (
-          <div style={{ padding: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem' }}>
+          <div style={{ padding: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem', position: 'relative' }}>
+            <button type="button" onClick={onClose} aria-label="Avbryt"
+              style={{ position: 'absolute', top: 0, right: 0, padding: '1rem', fontSize: '0.875rem', color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer' }}>✕</button>
             <div style={{ position: 'relative', width: '48px', height: '48px' }}>
               <svg className="animate-spin" style={{ position: 'absolute', inset: 0, color: 'var(--accent)' }} viewBox="0 0 48 48" fill="none" aria-hidden="true">
                 <circle cx="24" cy="24" r="20" stroke="currentColor" strokeWidth="3" strokeOpacity="0.12" />
@@ -174,7 +167,7 @@ function UploadOverlay({
         {!isAnalyzing && !allDone && readyItems.length > 0 && (
           <>
             {/* Header */}
-            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem' }}>
+            <div style={{ padding: '1.25rem 1.5rem 1.25rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem' }}>
               <div>
                 <p style={{ fontSize: '0.9375rem', fontWeight: 700, color: 'var(--foreground)', marginBottom: '0.2rem' }}>
                   {readyItems.length === 1 ? 'Granska och spara' : `Granska ${readyItems.length} dokument`}
@@ -184,7 +177,8 @@ function UploadOverlay({
                 </p>
               </div>
               {!isSaving && (
-                <button type="button" onClick={onClose} style={{ fontSize: '0.8125rem', color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0, paddingTop: '2px' }}>Avbryt</button>
+                <button type="button" onClick={onClose} aria-label="Avbryt"
+                  style={{ fontSize: '1rem', lineHeight: 1, color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0, padding: '2px 0 0 0' }}>✕</button>
               )}
             </div>
 
