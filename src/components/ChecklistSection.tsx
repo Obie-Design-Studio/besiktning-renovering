@@ -202,37 +202,50 @@ function ChecklistItemRow({ item, uploads, commentsBySlug }: ChecklistItemRowPro
 }
 
 export function ChecklistSection({ uploadsBySlug, commentsBySlug }: ChecklistSectionProps) {
-  const uploadedCount = CHECKLIST_ITEMS.filter(
-    (item) => (uploadsBySlug[item.slug]?.length ?? 0) > 0,
-  ).length
-  const totalCount = CHECKLIST_ITEMS.length
+  const requiredItems = CHECKLIST_ITEMS.filter((item) => item.required)
+  const missingRequired = requiredItems.filter(
+    (item) => (uploadsBySlug[item.slug]?.length ?? 0) === 0,
+  )
+  const allRequiredDone = missingRequired.length === 0
 
   const groupedItems = groupItemsByCategory(CHECKLIST_ITEMS)
 
   return (
     <section style={{ marginBottom: '3rem' }}>
-      <div className="flex items-baseline justify-between" style={{ marginBottom: '1.25rem' }}>
-        <div>
-          <h2 className="font-semibold" style={{ fontSize: '1.1rem', color: 'var(--foreground)' }}>
-            Dokumentation
-          </h2>
-          <p className="text-sm" style={{ color: 'var(--muted)', marginTop: '0.15rem' }}>
-            Handlingar inlämnade i {uploadedCount} av {totalCount} områden
-          </p>
-        </div>
-        <div
-          style={{
-            fontSize: '0.75rem',
-            fontWeight: 600,
-            color: uploadedCount === totalCount ? '#16A34A' : 'var(--muted)',
-            background: uploadedCount === totalCount ? '#F0FDF4' : 'var(--background)',
-            border: `1px solid ${uploadedCount === totalCount ? '#BBF7D0' : 'var(--border)'}`,
-            borderRadius: '6px',
-            padding: '3px 10px',
-          }}
-        >
-          {uploadedCount}/{totalCount}
-        </div>
+      <div style={{ marginBottom: '1.25rem' }}>
+        <h2 className="font-semibold" style={{ fontSize: '1.1rem', color: 'var(--foreground)', marginBottom: '0.75rem' }}>
+          Dokumentation
+        </h2>
+
+        {/* Mandatory documents summary */}
+        {allRequiredDone ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', padding: '0.75rem 1rem', borderRadius: '8px', background: '#F0FDF4', border: '1px solid #BBF7D0' }}>
+            <div style={{ width: '18px', height: '18px', borderRadius: '50%', background: '#16A34A', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5l2.5 2.5L8 3" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            </div>
+            <p style={{ fontSize: '0.875rem', fontWeight: 500, color: '#15803D' }}>
+              Alla obligatoriska dokument är inlämnade
+            </p>
+          </div>
+        ) : (
+          <div style={{ padding: '0.875rem 1rem', borderRadius: '8px', background: '#FEF2F2', border: '1px solid #FCA5A5' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0 }}><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+              <p style={{ fontSize: '0.875rem', fontWeight: 600, color: '#B91C1C' }}>
+                {missingRequired.length === 1
+                  ? '1 obligatoriskt dokument saknas'
+                  : `${missingRequired.length} obligatoriska dokument saknas`}
+              </p>
+            </div>
+            <ul style={{ margin: 0, padding: '0 0 0 1.5rem', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+              {missingRequired.map((item) => (
+                <li key={item.slug} style={{ fontSize: '0.8125rem', color: '#DC2626' }}>
+                  {item.title}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
 
       <div
