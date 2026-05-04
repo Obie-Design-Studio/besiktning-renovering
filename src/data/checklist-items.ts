@@ -76,6 +76,7 @@ export const CHECKLIST_ITEMS: ChecklistItem[] = [
     title: 'Garantier & Försäkringar',
     description:
       'Försäkringsbrev, garantibevis och liknande handlingar — inkl. allrisk- och ansvarsförsäkring enligt HF17.',
+    required: true,
   },
 ]
 
