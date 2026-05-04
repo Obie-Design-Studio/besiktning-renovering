@@ -207,11 +207,11 @@ export function ChecklistSection({ uploadsBySlug, commentsBySlug }: ChecklistSec
               {/* ── Section header (outside the card) ── */}
               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem', marginBottom: '0.5rem' }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted)', marginBottom: '0.25rem' }}>
+                  <h3 className="font-semibold" style={{ fontSize: '1.1rem', color: 'var(--foreground)', marginBottom: '0.15rem' }}>
                     {category}
-                  </p>
+                  </h3>
                   {CATEGORY_DESCRIPTIONS[category] && (
-                    <p style={{ fontSize: '0.8125rem', color: 'var(--muted)', lineHeight: 1.55 }}>
+                    <p className="text-sm" style={{ color: 'var(--muted)', marginTop: '0.15rem' }}>
                       {CATEGORY_DESCRIPTIONS[category]}
                     </p>
                   )}
