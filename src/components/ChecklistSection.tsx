@@ -112,32 +112,10 @@ function UploadedFile({
   )
 }
 
-/** A single required-but-missing item shown in the section header area, with its own upload trigger. */
+/** A single required-but-missing item shown in the section header area. */
 function MissingRequiredItem({ item }: { item: ChecklistItem }) {
-  const { processFiles } = useSmartUpload()
-  const fileInputRef = useRef<HTMLInputElement>(null)
   return (
-    <li style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '1rem' }}>
-      <span style={{ fontSize: '0.8125rem', color: '#DC2626' }}>{item.title}</span>
-      <button
-        type="button"
-        onClick={() => fileInputRef.current?.click()}
-        style={{ fontSize: '0.75rem', fontWeight: 500, color: '#DC2626', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', flexShrink: 0 }}
-      >
-        + Ladda upp
-      </button>
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept=".pdf,application/pdf"
-        className="sr-only"
-        onChange={(e) => {
-          const files = Array.from(e.target.files ?? [])
-          if (files.length) processFiles(files, item.slug)
-          e.target.value = ''
-        }}
-      />
-    </li>
+    <li style={{ fontSize: '0.8125rem', color: '#DC2626' }}>{item.title}</li>
   )
 }
 
