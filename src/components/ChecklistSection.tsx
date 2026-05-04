@@ -250,30 +250,16 @@ export function ChecklistSection({ uploadsBySlug, commentsBySlug }: ChecklistSec
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         {groupedItems.map(([category, items]) => {
-          const hasMissingRequired = items.some(
-            (item) => item.required && (uploadsBySlug[item.slug]?.length ?? 0) === 0
-          )
           return (
           <div key={category} id={CATEGORY_NAV_ID[category]}>
-            {/* Category heading — outside the card, matching ExtraDocsSection pattern */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-              <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: hasMissingRequired ? '#DC2626' : 'var(--muted)' }}>
-                {category}
-              </p>
-              {hasMissingRequired && (
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true" style={{ flexShrink: 0 }}>
-                  <circle cx="6" cy="6" r="6" fill="#DC2626" />
-                  <path d="M6 3.5V6" stroke="white" strokeWidth="1.25" strokeLinecap="round" />
-                  <circle cx="6" cy="8.25" r="0.625" fill="white" />
-                </svg>
-              )}
-            </div>
+            <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted)', marginBottom: '0.5rem' }}>
+              {category}
+            </p>
 
-            {/* Individual card per category */}
             <div
               style={{
                 background: 'var(--card)',
-                border: `1px solid ${hasMissingRequired ? '#FCA5A5' : 'var(--border)'}`,
+                border: '1px solid var(--border)',
                 borderRadius: '12px',
                 overflow: 'hidden',
               }}
