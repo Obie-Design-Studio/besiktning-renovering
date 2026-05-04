@@ -3,6 +3,7 @@ export interface ChecklistItem {
   category: string
   title: string
   description: string
+  required?: boolean
 }
 
 export const CHECKLIST_ITEMS: ChecklistItem[] = [
@@ -11,12 +12,14 @@ export const CHECKLIST_ITEMS: ChecklistItem[] = [
     category: 'VVS',
     title: 'Egenkontroll VVS & Provtryckningsprotokoll',
     description: 'Egenkontroll för VVS-arbeten samt protokoll för provtryckning av rörinstallationer.',
+    required: true,
   },
   {
     slug: 'vvs-sakervatten',
     category: 'VVS',
     title: 'Säkervattensprotokoll & Övrig VVS-dokumentation',
     description: 'Säkervatten-protokoll samt annan dokumentation så som foto och övriga intyg.',
+    required: true,
   },
   {
     slug: 'vatrum-tatskikt',
@@ -31,6 +34,7 @@ export const CHECKLIST_ITEMS: ChecklistItem[] = [
     title: 'Egenkontroll El, Isolationsmätning & Jordfelsprovning',
     description:
       'Fullständig el-dokumentation med egenkontroll, protokoll för isolationsmätning och jordfelsprovning.',
+    required: true,
   },
   {
     slug: 'bygg-egenkontroll',
@@ -38,6 +42,7 @@ export const CHECKLIST_ITEMS: ChecklistItem[] = [
     title: 'Egenkontroll Bygg',
     description:
       'Egenkontroll för allt utfört byggnadsarbete — att man följt ritning, beskrivning och gällande regelverk.',
+    required: true,
   },
   {
     slug: 'ventilation',

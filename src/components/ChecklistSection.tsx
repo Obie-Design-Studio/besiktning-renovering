@@ -135,6 +135,13 @@ function ChecklistItemRow({ item, uploads, commentsBySlug, isActive, onToggle }:
                 <path d="M2 5l2.5 2.5L8 3" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </div>
+          ) : item.required ? (
+            <div style={{ width: '18px', height: '18px', borderRadius: '50%', background: '#DC2626', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Obligatoriskt dokument saknas">
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-label="Obligatoriskt">
+                <path d="M5 2.5V5.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+                <circle cx="5" cy="7.5" r="0.75" fill="white" />
+              </svg>
+            </div>
           ) : (
             <div style={{ width: '18px', height: '18px', borderRadius: '50%', border: '1.5px solid var(--border)', background: 'transparent' }} aria-label="Saknas" />
           )}
