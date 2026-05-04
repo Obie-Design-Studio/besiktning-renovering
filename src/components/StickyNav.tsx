@@ -54,6 +54,7 @@ export function StickyNav({ counts = {}, missingRequired = {} }: StickyNavProps)
         borderRadius: '10px',
         padding: '6px',
         boxShadow: '0 2px 12px rgba(0,0,0,0.07)',
+        width: '210px',
       }}
       className="hidden lg:flex"
     >
@@ -98,7 +99,7 @@ export function StickyNav({ counts = {}, missingRequired = {} }: StickyNavProps)
             }} />
             <span style={{
               fontSize: '0.6875rem',
-              fontWeight: isActive ? 600 : 400,
+              fontWeight: 500,
               color: isActive ? '#ffffff' : missing > 0 ? '#DC2626' : 'var(--muted)',
               transition: 'color 0.15s',
               letterSpacing: '0.01em',
