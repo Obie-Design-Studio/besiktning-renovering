@@ -71,12 +71,19 @@ export const CHECKLIST_ITEMS: ChecklistItem[] = [
       'Kontrakt, avtal och handlingar som specificerar vad som ingår i uppdraget och utförda arbeten.',
   },
   {
+    slug: 'garantier-forsakring',
+    category: 'Garantier & Försäkringar',
+    title: 'Allrisk- & Ansvarsförsäkring',
+    description:
+      'Försäkringsbevis för allrisk- och ansvarsförsäkring — obligatoriskt enligt HF17 punkt 13.',
+    required: true,
+  },
+  {
     slug: 'garantier',
     category: 'Garantier & Försäkringar',
-    title: 'Garantier & Försäkringar',
+    title: 'Garantibevis & Övriga försäkringar',
     description:
-      'Försäkringsbrev, garantibevis och liknande handlingar — inkl. allrisk- och ansvarsförsäkring enligt HF17.',
-    required: true,
+      'Garantibevis, färdigställandeförsäkring och övriga försäkringshandlingar.',
   },
 ]
 
