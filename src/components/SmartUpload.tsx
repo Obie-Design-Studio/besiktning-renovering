@@ -73,115 +73,195 @@ const ANALYSIS_STEPS = [
   'Väljer kategori',
 ]
 
-function AnalysisOverlay({ fileName, count }: { fileName: string; count: number }) {
+interface UploadOverlayProps {
+  analyzingItems: FileReviewItem[]
+  readyItems: FileReviewItem[]
+  doneItems: FileReviewItem[]
+  allDone: boolean
+  isSaving: boolean
+  saveError: string | null
+  canSaveAll: boolean
+  identity: UploaderName | null
+  onChange: (id: string, patch: Partial<FileReviewItem>) => void
+  onSetFallbackIdentity: (name: UploaderName) => void
+  onSave: () => void
+  onClose: () => void
+}
+
+function UploadOverlay({
+  analyzingItems, readyItems, doneItems, allDone,
+  isSaving, saveError, canSaveAll,
+  identity, onChange, onSetFallbackIdentity, onSave, onClose,
+}: UploadOverlayProps) {
   const [step, setStep] = useState(0)
+  const firstAnalyzing = analyzingItems[0]
 
   useEffect(() => {
     setStep(0)
-    const id = setInterval(() => {
-      setStep((s) => Math.min(s + 1, ANALYSIS_STEPS.length - 1))
-    }, 1100)
+    const id = setInterval(() => setStep((s) => Math.min(s + 1, ANALYSIS_STEPS.length - 1)), 1100)
     return () => clearInterval(id)
-  }, [fileName])
+  }, [firstAnalyzing?.id])
+
+  const isAnalyzing = analyzingItems.length > 0
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 100,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '1rem',
-        background: 'rgba(0,0,0,0.45)',
-        backdropFilter: 'blur(6px)',
-        WebkitBackdropFilter: 'blur(6px)',
-      }}
-    >
-      <div
-        style={{
-          background: 'var(--card)',
-          border: '1px solid var(--border)',
-          borderRadius: '20px',
-          padding: '2rem 2rem 1.75rem',
-          width: '100%',
-          maxWidth: '360px',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: '1.5rem',
-          boxShadow: '0 24px 64px rgba(0,0,0,0.18)',
-        }}
-      >
-        {/* Spinner */}
-        <div style={{ position: 'relative', width: '48px', height: '48px' }}>
-          <svg className="animate-spin" style={{ position: 'absolute', inset: 0, color: 'var(--accent)' }} viewBox="0 0 48 48" fill="none" aria-hidden="true">
-            <circle cx="24" cy="24" r="20" stroke="currentColor" strokeWidth="3" strokeOpacity="0.12" />
-            <path d="M24 4a20 20 0 0 1 20 20" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-          </svg>
-        </div>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }}>
+      <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '20px', width: '100%', maxWidth: '440px', display: 'flex', flexDirection: 'column', boxShadow: '0 24px 64px rgba(0,0,0,0.2)', overflow: 'hidden', maxHeight: '90vh' }}>
 
-        {/* Title */}
-        <div style={{ textAlign: 'center' }}>
-          <p style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--foreground)', marginBottom: '0.3rem' }}>
-            AI analyserar dokumentet
-          </p>
-          <p style={{ fontSize: '0.8125rem', color: 'var(--muted)', maxWidth: '260px' }}>
-            {count > 1
-              ? `Analyserar ${count} filer — fyller i titel, beskrivning och kategori`
-              : `Fyller i titel, beskrivning och kategori automatiskt`}
-          </p>
-          {fileName && (
-            <p
-              className="truncate"
-              style={{ fontSize: '0.75rem', color: 'var(--muted)', marginTop: '0.4rem', maxWidth: '260px', opacity: 0.7 }}
-              title={fileName}
-            >
-              {fileName}
-            </p>
-          )}
-        </div>
+        {/* ── ANALYZING PHASE ── */}
+        {isAnalyzing && (
+          <div style={{ padding: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem' }}>
+            <div style={{ position: 'relative', width: '48px', height: '48px' }}>
+              <svg className="animate-spin" style={{ position: 'absolute', inset: 0, color: 'var(--accent)' }} viewBox="0 0 48 48" fill="none" aria-hidden="true">
+                <circle cx="24" cy="24" r="20" stroke="currentColor" strokeWidth="3" strokeOpacity="0.12" />
+                <path d="M24 4a20 20 0 0 1 20 20" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+              </svg>
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              <p style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--foreground)', marginBottom: '0.25rem' }}>AI analyserar dokumentet</p>
+              <p style={{ fontSize: '0.8125rem', color: 'var(--muted)' }}>
+                {analyzingItems.length > 1 ? `Analyserar ${analyzingItems.length} filer` : 'Fyller i titel, beskrivning och kategori automatiskt'}
+              </p>
+              {firstAnalyzing && (
+                <p className="truncate" style={{ fontSize: '0.75rem', color: 'var(--muted)', marginTop: '0.35rem', opacity: 0.6 }} title={firstAnalyzing.file?.name ?? firstAnalyzing.linkUrl}>
+                  {firstAnalyzing.file?.name ?? firstAnalyzing.linkUrl}
+                </p>
+              )}
+            </div>
+            <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '0.625rem', width: '100%' }}>
+              {ANALYSIS_STEPS.map((label, i) => {
+                const done = i < step; const active = i === step
+                return (
+                  <li key={label} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.875rem', color: done ? '#16A34A' : active ? 'var(--foreground)' : 'var(--muted)', opacity: i > step + 1 ? 0.35 : 1, transition: 'color 0.3s, opacity 0.3s', fontWeight: active ? 500 : 400 }}>
+                    <span style={{ flexShrink: 0, width: '18px', height: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {done ? (
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="8" fill="#16A34A"/><path d="M4.5 8l2.5 2.5L11.5 5.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      ) : active ? (
+                        <svg className="animate-spin" width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="var(--accent)" strokeWidth="2" strokeOpacity="0.2"/><path d="M8 2a6 6 0 0 1 6 6" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round"/></svg>
+                      ) : (
+                        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--border)', display: 'block', margin: '0 auto' }} />
+                      )}
+                    </span>
+                    {label}
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
+        )}
 
-        {/* Step list */}
-        <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '0.625rem', width: '100%' }}>
-          {ANALYSIS_STEPS.map((label, i) => {
-            const isDone = i < step
-            const isActive = i === step
-            return (
-              <li
-                key={label}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.75rem',
-                  fontSize: '0.875rem',
-                  color: isDone ? '#16A34A' : isActive ? 'var(--foreground)' : 'var(--muted)',
-                  opacity: i > step + 1 ? 0.35 : 1,
-                  transition: 'color 0.3s, opacity 0.3s',
-                  fontWeight: isActive ? 500 : 400,
-                }}
-              >
-                <span style={{ flexShrink: 0, width: '18px', height: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  {isDone ? (
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                      <circle cx="8" cy="8" r="8" fill="#16A34A" />
-                      <path d="M4.5 8l2.5 2.5L11.5 5.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  ) : isActive ? (
-                    <svg className="animate-spin" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                      <circle cx="8" cy="8" r="6" stroke="var(--accent)" strokeWidth="2" strokeOpacity="0.2" />
-                      <path d="M8 2a6 6 0 0 1 6 6" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" />
-                    </svg>
+        {/* ── REVIEW PHASE ── */}
+        {!isAnalyzing && !allDone && readyItems.length > 0 && (
+          <>
+            {/* Header */}
+            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem' }}>
+              <div>
+                <p style={{ fontSize: '0.9375rem', fontWeight: 700, color: 'var(--foreground)', marginBottom: '0.2rem' }}>
+                  {readyItems.length === 1 ? 'Granska och spara' : `Granska ${readyItems.length} dokument`}
+                </p>
+                <p style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>
+                  AI har fyllt i fälten — justera om något behöver korrigeras
+                </p>
+              </div>
+              {!isSaving && (
+                <button type="button" onClick={onClose} style={{ fontSize: '0.8125rem', color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0, paddingTop: '2px' }}>Avbryt</button>
+              )}
+            </div>
+
+            {/* Scrollable item list */}
+            <div style={{ overflowY: 'auto', flex: 1, padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+              {readyItems.map((item) => (
+                <div key={item.id} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {/* File label */}
+                  <p className="truncate text-xs" style={{ color: 'var(--muted)', fontWeight: 500 }} title={item.file?.name ?? item.linkUrl}>
+                    {item.file?.name ?? item.linkUrl}
+                  </p>
+
+                  {/* Category */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.6875rem', fontWeight: 600, color: 'var(--muted)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Kategori</label>
+                    <select value={item.selectedSlug} onChange={(e) => onChange(item.id, { selectedSlug: e.target.value })} disabled={isSaving}
+                      style={{ width: '100%', borderRadius: '7px', border: '1.5px solid var(--border)', background: 'var(--background)', padding: '0.5rem 0.625rem', fontSize: '0.8125rem', color: 'var(--foreground)', outline: 'none' }}>
+                      {ALL_SLUG_OPTIONS.map((opt) => <option key={opt.slug} value={opt.slug}>{opt.label}</option>)}
+                    </select>
+                  </div>
+
+                  {/* Title */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.6875rem', fontWeight: 600, color: 'var(--muted)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Titel</label>
+                    <input type="text" value={item.title} onChange={(e) => onChange(item.id, { title: e.target.value })} disabled={isSaving}
+                      style={{ width: '100%', borderRadius: '7px', border: '1.5px solid var(--border)', background: 'var(--background)', padding: '0.5rem 0.625rem', fontSize: '0.8125rem', color: 'var(--foreground)', outline: 'none' }} />
+                  </div>
+
+                  {/* Description */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.6875rem', fontWeight: 600, color: 'var(--muted)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Beskrivning</label>
+                    <textarea rows={3} value={item.description} onChange={(e) => onChange(item.id, { description: e.target.value })} disabled={isSaving}
+                      style={{ width: '100%', borderRadius: '7px', border: '1.5px solid var(--border)', background: 'var(--background)', padding: '0.5rem 0.625rem', fontSize: '0.8125rem', color: 'var(--foreground)', outline: 'none', resize: 'vertical', fontFamily: 'inherit' }} />
+                  </div>
+
+                  {/* Uploader */}
+                  {identity ? (
+                    <p style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>Laddar upp som <strong style={{ color: 'var(--foreground)' }}>{identity}</strong></p>
                   ) : (
-                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--border)', display: 'block', margin: '0 auto' }} />
+                    <div className="flex gap-2">
+                      {UPLOADERS.map((name) => (
+                        <label key={name} className="flex cursor-pointer items-center gap-2"
+                          style={{ padding: '4px 10px', borderRadius: '6px', border: `1px solid ${item.uploaderName === name ? 'var(--foreground)' : 'var(--border)'}`, background: item.uploaderName === name ? 'var(--foreground)' : 'var(--card)', fontSize: '0.75rem', color: item.uploaderName === name ? 'var(--card)' : 'var(--muted)', cursor: 'pointer' }}>
+                          <input type="radio" name={`uploader-${item.id}`} value={name} checked={item.uploaderName === name} onChange={() => { onChange(item.id, { uploaderName: name }); onSetFallbackIdentity(name) }} disabled={isSaving} className="sr-only" />
+                          {name}
+                        </label>
+                      ))}
+                    </div>
                   )}
-                </span>
-                {label}
-              </li>
-            )
-          })}
-        </ul>
+
+                  {readyItems.indexOf(item) < readyItems.length - 1 && (
+                    <div style={{ height: '1px', background: 'var(--border)', marginTop: '0.25rem' }} />
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Footer */}
+            <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+              {saveError && (
+                <p style={{ fontSize: '0.8125rem', color: '#DC2626' }}>{saveError}</p>
+              )}
+              <button type="button" onClick={onSave} disabled={!canSaveAll || isSaving}
+                style={{ width: '100%', background: 'var(--foreground)', color: 'var(--card)', border: 'none', borderRadius: '8px', padding: '0.875rem', fontSize: '0.9375rem', fontWeight: 700, cursor: canSaveAll && !isSaving ? 'pointer' : 'not-allowed', opacity: canSaveAll && !isSaving ? 1 : 0.5, letterSpacing: '-0.01em' }}>
+                {isSaving ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                    Sparar…
+                  </span>
+                ) : readyItems.length === 1 ? 'Spara till listan' : `Spara ${readyItems.length} dokument`}
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* ── DONE PHASE ── */}
+        {allDone && (
+          <div style={{ padding: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', textAlign: 'center' }}>
+            <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#16A34A', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M5 12l4 4L19 7" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </div>
+            <div>
+              <p style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--foreground)', marginBottom: '0.25rem' }}>
+                {doneItems.length === 1 ? 'Dokument sparat!' : `${doneItems.length} dokument sparade!`}
+              </p>
+              <ul style={{ listStyle: 'none', margin: '0.5rem 0 0', padding: 0, display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                {doneItems.map((item) => (
+                  <li key={item.id} style={{ fontSize: '0.8125rem', color: '#16A34A' }}>
+                    ✓ {item.title || item.file?.name} — {slugLabel(item.selectedSlug)}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <p style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>Stängs om ett ögonblick…</p>
+          </div>
+        )}
+
       </div>
     </div>
   )
@@ -257,16 +337,8 @@ function FileCard({ item, identity, onChange, onRemove, onSetFallbackIdentity }:
       {/* Body */}
       <div style={{ padding: '0.875rem 1.25rem' }}>
 
-      {/* Analyzing — overlay handles the detailed progress, show minimal placeholder */}
-      {isAnalyzing && (
-        <div style={{ height: '2rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <svg className="h-3.5 w-3.5 animate-spin" style={{ color: 'var(--muted)' }} fill="none" viewBox="0 0 24 24" aria-hidden="true">
-            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" strokeOpacity="0.2" />
-            <path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="4" strokeLinecap="round" />
-          </svg>
-          <span style={{ fontSize: '0.8125rem', color: 'var(--muted)' }}>Analyserar…</span>
-        </div>
-      )}
+      {/* Analyzing — handled by UploadOverlay */}
+      {isAnalyzing && <div style={{ height: '0.5rem' }} />}
 
       {isDone && (
         <p style={{ fontSize: '0.8125rem', color: '#16A34A', fontWeight: 500 }}>
@@ -618,8 +690,7 @@ export function SmartUpload() {
     return () => clearTimeout(timer)
   }, [allDone])
 
-  const firstAnalyzing = analyzingItems[0]
-  const showOverlay = analyzingItems.length > 0
+  const showOverlay = items.length > 0
 
   if (!isOpen) {
     return (
@@ -653,9 +724,19 @@ export function SmartUpload() {
   return (
     <>
     {showOverlay && (
-      <AnalysisOverlay
-        fileName={firstAnalyzing.file?.name ?? firstAnalyzing.linkUrl ?? ''}
-        count={analyzingItems.length}
+      <UploadOverlay
+        analyzingItems={analyzingItems}
+        readyItems={readyItems}
+        doneItems={doneItems}
+        allDone={allDone}
+        isSaving={isSavingAll}
+        saveError={saveError}
+        canSaveAll={canSaveAll}
+        identity={identity as UploaderName | null}
+        onChange={updateItem}
+        onSetFallbackIdentity={setFallbackIdentity}
+        onSave={handleSaveAll}
+        onClose={() => { setIsOpen(false); setItems([]) }}
       />
     )}
     <div
