@@ -248,25 +248,15 @@ export function ChecklistSection({ uploadsBySlug, commentsBySlug }: ChecklistSec
         )}
       </div>
 
-      <div
-        style={{
-          background: 'var(--card)',
-          border: '1px solid var(--border)',
-          borderRadius: '12px',
-          overflow: 'hidden',
-        }}
-      >
-        {groupedItems.map(([category, items], groupIdx) => {
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        {groupedItems.map(([category, items]) => {
           const hasMissingRequired = items.some(
             (item) => item.required && (uploadsBySlug[item.slug]?.length ?? 0) === 0
           )
           return (
-          <div
-            key={category}
-            id={CATEGORY_NAV_ID[category]}
-            style={{ borderTop: groupIdx > 0 ? '1px solid var(--border)' : 'none' }}
-          >
-            <div style={{ padding: '1rem 1.25rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <div key={category} id={CATEGORY_NAV_ID[category]}>
+            {/* Category heading — outside the card, matching ExtraDocsSection pattern */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
               <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: hasMissingRequired ? '#DC2626' : 'var(--muted)' }}>
                 {category}
               </p>
@@ -278,7 +268,17 @@ export function ChecklistSection({ uploadsBySlug, commentsBySlug }: ChecklistSec
                 </svg>
               )}
             </div>
-            <div style={{ padding: '0 1.25rem' }}>
+
+            {/* Individual card per category */}
+            <div
+              style={{
+                background: 'var(--card)',
+                border: `1px solid ${hasMissingRequired ? '#FCA5A5' : 'var(--border)'}`,
+                borderRadius: '12px',
+                overflow: 'hidden',
+                padding: '0 1.25rem',
+              }}
+            >
               {items.map((item) => (
                 <ChecklistItemRow
                   key={item.slug}
