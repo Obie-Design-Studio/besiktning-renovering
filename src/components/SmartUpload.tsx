@@ -184,7 +184,6 @@ function AnalysisOverlay({ fileName, count }: { fileName: string; count: number 
         </ul>
       </div>
     </div>
-    </>
   )
 }
 
@@ -872,5 +871,6 @@ export function SmartUpload() {
         </div>
       )}
     </div>
+    </>
   )
 }
