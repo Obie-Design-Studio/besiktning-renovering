@@ -1,4 +1,5 @@
 import { DeadlineBanner } from '@/components/DeadlineBanner'
+import { ShareLinks } from '@/components/ShareLinks'
 
 interface ContactField {
   label: string
@@ -105,6 +106,8 @@ export function InfoSection({ uploadButton }: InfoSectionProps) {
           Ladda ner alla dokument (ZIP)
         </a>
       </div>
+
+      <ShareLinks />
 
       <div className="grid gap-4 sm:grid-cols-3" style={{ marginTop: '1.5rem' }}>
         <PartyCard
