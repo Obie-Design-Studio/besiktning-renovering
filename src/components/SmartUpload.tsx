@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { CHECKLIST_ITEMS } from '@/data/checklist-items'
 import { saveDocumentUpload } from '@/actions/save-document-upload'
@@ -63,6 +63,87 @@ interface FileCardProps {
   onChange: (id: string, patch: Partial<FileReviewItem>) => void
   onRemove: (id: string) => void
   onSetFallbackIdentity: (name: UploaderName) => void
+}
+
+const ANALYSIS_STEPS = [
+  'Dokumentet mottaget',
+  'Läser och tolkar innehållet',
+  'Genererar titel',
+  'Skriver beskrivning',
+  'Väljer kategori',
+]
+
+function AnalyzingState() {
+  const [step, setStep] = useState(0)
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setStep((s) => Math.min(s + 1, ANALYSIS_STEPS.length - 1))
+    }, 1100)
+    return () => clearInterval(id)
+  }, [])
+
+  return (
+    <div style={{ padding: '1.25rem 0.25rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.25rem' }}>
+      {/* Spinner */}
+      <div style={{ position: 'relative', width: '40px', height: '40px' }}>
+        <svg className="animate-spin" style={{ position: 'absolute', inset: 0, color: 'var(--accent)' }} viewBox="0 0 40 40" fill="none" aria-hidden="true">
+          <circle cx="20" cy="20" r="16" stroke="currentColor" strokeWidth="3" strokeOpacity="0.15" />
+          <path d="M20 4a16 16 0 0 1 16 16" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+        </svg>
+      </div>
+
+      {/* Heading */}
+      <div style={{ textAlign: 'center' }}>
+        <p style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--foreground)', marginBottom: '0.2rem' }}>
+          AI analyserar dokumentet
+        </p>
+        <p style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>
+          Fyller i titel, beskrivning och kategori automatiskt
+        </p>
+      </div>
+
+      {/* Step list */}
+      <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%', maxWidth: '240px' }}>
+        {ANALYSIS_STEPS.map((label, i) => {
+          const isDone = i < step
+          const isActive = i === step
+          return (
+            <li
+              key={label}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.625rem',
+                fontSize: '0.8125rem',
+                color: isDone ? '#16A34A' : isActive ? 'var(--foreground)' : 'var(--muted)',
+                opacity: i > step + 1 ? 0.4 : 1,
+                transition: 'color 0.3s, opacity 0.3s',
+              }}
+            >
+              {/* Icon */}
+              <span style={{ flexShrink: 0, width: '16px', height: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {isDone ? (
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                    <circle cx="7" cy="7" r="7" fill="#16A34A" />
+                    <path d="M4 7l2 2 4-4" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                ) : isActive ? (
+                  <svg className="animate-spin" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                    <circle cx="7" cy="7" r="5.5" stroke="var(--accent)" strokeWidth="2" strokeOpacity="0.2" />
+                    <path d="M7 1.5a5.5 5.5 0 0 1 5.5 5.5" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" />
+                  </svg>
+                ) : (
+                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--border)', display: 'block' }} />
+                )}
+              </span>
+              {label}
+            </li>
+          )
+        })}
+      </ul>
+    </div>
+  )
 }
 
 function FileCard({ item, identity, onChange, onRemove, onSetFallbackIdentity }: FileCardProps) {
@@ -136,15 +217,7 @@ function FileCard({ item, identity, onChange, onRemove, onSetFallbackIdentity }:
       <div style={{ padding: '0.875rem 1.25rem' }}>
 
       {/* Analyzing */}
-      {isAnalyzing && (
-        <div className="flex items-center gap-2" style={{ fontSize: '0.8125rem', color: 'var(--muted)' }}>
-          <svg className="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-          </svg>
-          Analyserar...
-        </div>
-      )}
+      {isAnalyzing && <AnalyzingState />}
 
       {isDone && (
         <p style={{ fontSize: '0.8125rem', color: '#16A34A', fontWeight: 500 }}>
