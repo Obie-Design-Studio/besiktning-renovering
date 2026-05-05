@@ -105,6 +105,17 @@ export function OwnerFeaturesHint() {
       <span style={{ display: 'block', marginTop: '0.45rem', fontSize: '0.75rem', opacity: 0.95 }}>
         Uppladdningslogg och ändra uppladdare visas bara för Tobias efter inloggning med Tobias-token.
       </span>
+      <p style={{ margin: '0.5rem 0 0', fontSize: '0.75rem' }}>
+        <a
+          href="/api/identity-health"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ color: '#B45309', textDecoration: 'underline', fontWeight: 600 }}
+        >
+          Kontrollera miljövariabler (JSON)
+        </a>
+        {' — '}visar om Vercel har satt token och övriga nycklar (inga hemligheter i svaret).
+      </p>
       <TokenPasteForm />
     </div>
   )
