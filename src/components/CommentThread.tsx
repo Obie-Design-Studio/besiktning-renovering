@@ -66,7 +66,7 @@ export function CommentThread({ slug, comments }: CommentThreadProps) {
   // Pre-select the author from the identity cookie
   useEffect(() => {
     if (identity && !author) {
-      setAuthor(identity as CommentAuthor)
+      setAuthor(identity as CommentAuthor) // eslint-disable-line react-hooks/set-state-in-effect -- sync author field from persisted identity
     }
   }, [identity, author])
 
@@ -74,7 +74,7 @@ export function CommentThread({ slug, comments }: CommentThreadProps) {
     if (state?.success) {
       formRef.current?.reset()
       // Re-apply identity so the radio stays selected after reset
-      if (identity) setAuthor(identity as CommentAuthor)
+      if (identity) setAuthor(identity as CommentAuthor) // eslint-disable-line react-hooks/set-state-in-effect -- restore selection after form reset
       router.refresh()
     }
   }, [state?.success, router, identity])

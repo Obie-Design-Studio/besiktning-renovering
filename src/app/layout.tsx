@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import { IdentityBadge } from '@/components/IdentityBadge'
+import { OwnerFeaturesHint } from '@/components/OwnerFeaturesHint'
 import { IdentityProvider } from '@/context/IdentityContext'
 import { SmartUploadProvider } from '@/context/SmartUploadContext'
 
@@ -28,7 +29,10 @@ export default function RootLayout({ children }: RootLayoutProps) {
             </div>
           </header>
 
-          <main className="mx-auto max-w-3xl px-6 py-12">{children}</main>
+          <main className="mx-auto max-w-3xl px-6 py-12">
+            <OwnerFeaturesHint />
+            {children}
+          </main>
 
           <footer className="mx-auto max-w-3xl px-6 pb-12">
             <div style={{ borderTop: '1px solid var(--border)', paddingTop: '2rem' }}>

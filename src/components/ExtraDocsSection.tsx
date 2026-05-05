@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import { InlineUploadForm } from '@/components/InlineUploadForm'
 import { CommentThread } from '@/components/CommentThread'
 import { DeleteButton } from '@/components/DeleteButton'
+import { DocumentUploaderMeta } from '@/components/DocumentUploaderMeta'
+import { SectionCompleteToggle } from '@/components/SectionCompleteToggle'
 import { updateDocument } from '@/actions/update-document'
 import { useIdentityContext } from '@/context/IdentityContext'
 import type { DocumentUpload } from '@/types/document'
@@ -14,6 +16,8 @@ interface ExtraDocsSectionProps {
   uploads: DocumentUpload[]
   comments: Comment[]
   commentsBySlug: Record<string, Comment[]>
+  /** Tobias kan markera övrig dokumentation som klar */
+  sectionCompleted?: boolean
 }
 
 function ExtraFile({
@@ -87,9 +91,10 @@ function ExtraFile({
                 {upload.upload_description}
               </p>
             )}
-            <p className="text-xs mt-1.5" style={{ color: 'var(--muted)' }}>
-              {upload.uploader_name} &nbsp;·&nbsp;{' '}
-              {new Date(upload.uploaded_at).toLocaleDateString('sv-SE')}
+            <p className="text-xs mt-1.5 flex flex-wrap items-center gap-x-1 gap-y-0.5" style={{ color: 'var(--muted)' }}>
+              <DocumentUploaderMeta upload={upload} />
+              <span aria-hidden="true">&nbsp;·&nbsp;</span>
+              <span>{new Date(upload.uploaded_at).toLocaleDateString('sv-SE')}</span>
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0" style={{ paddingTop: '2px' }}>
@@ -112,13 +117,18 @@ function ExtraFile({
   )
 }
 
-export function ExtraDocsSection({ uploads, comments, commentsBySlug }: ExtraDocsSectionProps) {
+export function ExtraDocsSection({
+  uploads,
+  comments,
+  commentsBySlug,
+  sectionCompleted = false,
+}: ExtraDocsSectionProps) {
   const [isFormOpen, setIsFormOpen] = useState(false)
 
   return (
     <section>
-      <div className="flex items-baseline justify-between" style={{ marginBottom: '1.25rem' }}>
-        <div>
+      <div className="flex items-baseline justify-between gap-3" style={{ marginBottom: '1.25rem' }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
           <h2 className="font-semibold" style={{ fontSize: '1.1rem', color: 'var(--foreground)' }}>
             Övrig dokumentation
           </h2>
@@ -126,15 +136,18 @@ export function ExtraDocsSection({ uploads, comments, commentsBySlug }: ExtraDoc
             Bilagor och bakgrundsinformation som inte tillhör en specifik checklistpunkt
           </p>
         </div>
-        {!isFormOpen && (
-          <button
-            type="button"
-            onClick={() => setIsFormOpen(true)}
-            style={{ fontSize: '0.8125rem', color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', flexShrink: 0 }}
-          >
-            + Lägg till
-          </button>
-        )}
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', flexShrink: 0 }}>
+          <SectionCompleteToggle navId="nav-ovrig" completed={sectionCompleted} />
+          {!isFormOpen && (
+            <button
+              type="button"
+              onClick={() => setIsFormOpen(true)}
+              style={{ fontSize: '0.8125rem', color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', flexShrink: 0 }}
+            >
+              + Lägg till
+            </button>
+          )}
+        </div>
       </div>
 
       <div

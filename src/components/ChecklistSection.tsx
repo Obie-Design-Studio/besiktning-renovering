@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import { CHECKLIST_ITEMS, groupItemsByCategory, CATEGORY_NAV_ID, CATEGORY_DESCRIPTIONS, type ChecklistItem } from '@/data/checklist-items'
 import { CommentThread } from '@/components/CommentThread'
 import { DeleteButton } from '@/components/DeleteButton'
+import { DocumentUploaderMeta } from '@/components/DocumentUploaderMeta'
+import { SectionCompleteToggle } from '@/components/SectionCompleteToggle'
 import { updateDocument } from '@/actions/update-document'
 import { useIdentityContext } from '@/context/IdentityContext'
 import { useSmartUpload } from '@/context/SmartUploadContext'
@@ -14,6 +16,10 @@ import type { Comment } from '@/types/comment'
 interface ChecklistSectionProps {
   uploadsBySlug: Record<string, DocumentUpload[]>
   commentsBySlug: Record<string, Comment[]>
+  /** Obligatoriska slugs utan egen fil men AI bedömer krav täckta i samma område */
+  aiSatisfiedRequiredSlugs?: string[]
+  /** Tobias-manuellt markerade klara sektioner */
+  completedSectionNavIds?: string[]
 }
 
 function UploadedFile({
@@ -87,9 +93,10 @@ function UploadedFile({
                 {upload.upload_description}
               </p>
             )}
-            <p className="text-xs mt-1.5" style={{ color: 'var(--muted)' }}>
-              {upload.uploader_name} &nbsp;·&nbsp;{' '}
-              {new Date(upload.uploaded_at).toLocaleDateString('sv-SE')}
+            <p className="text-xs mt-1.5 flex flex-wrap items-center gap-x-1 gap-y-0.5" style={{ color: 'var(--muted)' }}>
+              <DocumentUploaderMeta upload={upload} />
+              <span aria-hidden="true">&nbsp;·&nbsp;</span>
+              <span>{new Date(upload.uploaded_at).toLocaleDateString('sv-SE')}</span>
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0" style={{ paddingTop: '2px' }}>
@@ -127,11 +134,25 @@ function AddDocButton({ slug }: { slug: string }) {
   )
 }
 
-export function ChecklistSection({ uploadsBySlug, commentsBySlug }: ChecklistSectionProps) {
+export function ChecklistSection({
+  uploadsBySlug,
+  commentsBySlug,
+  aiSatisfiedRequiredSlugs = [],
+  completedSectionNavIds = [],
+}: ChecklistSectionProps) {
   const requiredItems = CHECKLIST_ITEMS.filter((item) => item.required)
-  const missingRequired = requiredItems.filter(
-    (item) => (uploadsBySlug[item.slug]?.length ?? 0) === 0,
-  )
+  const aiOk = new Set(aiSatisfiedRequiredSlugs)
+  const completedNav = new Set(completedSectionNavIds)
+
+  function mandatoryMissing(item: ChecklistItem): boolean {
+    if (!item.required) return false
+    const navId = CATEGORY_NAV_ID[item.category]
+    if (navId && completedNav.has(navId)) return false
+    if ((uploadsBySlug[item.slug]?.length ?? 0) > 0) return false
+    return !aiOk.has(item.slug)
+  }
+
+  const missingRequired = requiredItems.filter(mandatoryMissing)
   const allRequiredDone = missingRequired.length === 0
 
   const groupedItems = groupItemsByCategory(CHECKLIST_ITEMS)
@@ -168,6 +189,11 @@ export function ChecklistSection({ uploadsBySlug, commentsBySlug }: ChecklistSec
             </ul>
           </div>
         )}
+        {aiSatisfiedRequiredSlugs.length > 0 && (
+          <p style={{ fontSize: '0.75rem', color: 'var(--muted)', marginTop: '0.65rem', lineHeight: 1.45 }}>
+            Minst ett obligatoriskt krav är bedömt som täckt utifrån befintliga dokument i samma område (AI jämför titel och beskrivning med kravlistan när arkiveringen hamnat fel).
+          </p>
+        )}
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
@@ -175,14 +201,15 @@ export function ChecklistSection({ uploadsBySlug, commentsBySlug }: ChecklistSec
           // All uploads for this category, flattened and in upload order
           const categoryUploads = items.flatMap((item) => uploadsBySlug[item.slug] ?? [])
           // Required items in this category that still have no uploads
-          const categoryMissingRequired = items.filter(
-            (item) => item.required && (uploadsBySlug[item.slug]?.length ?? 0) === 0,
-          )
+          const categoryMissingRequired = items.filter(mandatoryMissing)
           // Default slug for the general "add" button — first item in the category
           const defaultSlug = items[0]?.slug ?? 'ovrig'
 
+          const navId = CATEGORY_NAV_ID[category]
+          const sectionDone = navId ? completedNav.has(navId) : false
+
           return (
-            <div key={category} id={CATEGORY_NAV_ID[category]}>
+            <div key={category} id={navId}>
 
               {/* ── Section header (outside the card) ── */}
               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem', marginBottom: '0.5rem' }}>
@@ -203,7 +230,12 @@ export function ChecklistSection({ uploadsBySlug, commentsBySlug }: ChecklistSec
                     </p>
                   )}
                 </div>
-                <AddDocButton slug={defaultSlug} />
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', flexShrink: 0 }}>
+                  {navId && (
+                    <SectionCompleteToggle navId={navId} completed={sectionDone} />
+                  )}
+                  <AddDocButton slug={defaultSlug} />
+                </div>
               </div>
 
               {/* ── White card — uploaded files only ── */}

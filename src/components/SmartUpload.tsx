@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef, useCallback, useEffect, useLayoutEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { CHECKLIST_ITEMS } from '@/data/checklist-items'
 import { saveDocumentUpload } from '@/actions/save-document-upload'
@@ -8,6 +8,7 @@ import { createUploadUrl } from '@/actions/create-upload-url'
 import { createSupabaseBrowser } from '@/lib/supabase'
 import { useIdentityContext } from '@/context/IdentityContext'
 import { registerUploadHandler } from '@/context/SmartUploadContext'
+import type { IdentityName } from '@/lib/identity'
 import type { AnalyzeDocumentResponse } from '@/app/api/analyze-document/route'
 import type { UploaderName } from '@/types/document'
 
@@ -39,6 +40,19 @@ interface FileReviewItem {
 }
 
 const UPLOADERS: UploaderName[] = ['Tobias', 'Palmens byggservice']
+
+/** Never default to Tobias — unknown identity must pick Palmens/Tobias explicitly in review. */
+function initialUploaderFromIdentity(identity: IdentityName | null): UploaderName | '' {
+  if (identity === 'Tobias' || identity === 'Palmens byggservice') return identity
+  return ''
+}
+
+function uploaderForSaveItem(identity: IdentityName | null, item: FileReviewItem): UploaderName {
+  if (identity === 'Tobias' || identity === 'Palmens byggservice') return identity
+  const u = item.uploaderName
+  if (u === 'Tobias' || u === 'Palmens byggservice') return u
+  return 'Tobias'
+}
 
 const ALL_SLUG_OPTIONS = [
   ...CHECKLIST_ITEMS.map((item) => ({ slug: item.slug, label: item.title })),
@@ -120,8 +134,9 @@ function UploadOverlay({
   // Recompute delays whenever the file being analysed changes.
   const stepDelays = estimateStepDelays(firstAnalyzing?.file?.size ?? null)
 
+  // Reset stepper when a new file starts analyzing (new id).
   useEffect(() => {
-    setStep(0)
+    setStep(0) // eslint-disable-line react-hooks/set-state-in-effect -- sync UI to new analysis target
   }, [firstAnalyzing?.id])
 
   useEffect(() => {
@@ -382,7 +397,7 @@ function FileCard({ item, identity, onChange, onRemove, onSetFallbackIdentity }:
             </p>
             {isReady && (
               <p style={{ fontSize: '0.6875rem', color: 'rgba(255,255,255,0.75)', marginTop: '1px' }}>
-                Granska nedan — klicka sedan "Spara till listan"
+                Granska nedan — klicka sedan <strong>Spara till listan</strong>
               </p>
             )}
           </div>
@@ -561,7 +576,7 @@ export function SmartUpload() {
       title: fallbackTitle,
       description: '',
       selectedSlug: panelDefaultSlug ?? 'ovrig',
-      uploaderName: (identity as UploaderName) ?? 'Tobias',
+      uploaderName: initialUploaderFromIdentity(identity),
     }
     setSaveError(null) // clear any error from a previous save attempt
     setItems((prev) => [...prev, newItem])
@@ -582,6 +597,7 @@ export function SmartUpload() {
     }
   }
 
+  /* eslint-disable react-hooks/exhaustive-deps -- processFiles is recreated each render; useLayoutEffect below keeps processFilesRef.current fresh without a giant useCallback dep list */
   async function processFiles(files: File[], preselectedSlug?: string) {
     const pdfFiles = files.filter((f) => f.type === 'application/pdf' || f.name.endsWith('.pdf'))
     if (!pdfFiles.length) return
@@ -593,7 +609,7 @@ export function SmartUpload() {
       title: '',
       description: '',
       selectedSlug: preselectedSlug ?? panelDefaultSlug ?? 'ovrig',
-      uploaderName: (identity as UploaderName) ?? 'Tobias',
+      uploaderName: initialUploaderFromIdentity(identity),
     }))
 
     setSaveError(null)
@@ -666,6 +682,7 @@ export function SmartUpload() {
       }
     }
   }
+  /* eslint-enable react-hooks/exhaustive-deps */
 
   function handleFiles(fileList: FileList | null) {
     if (!fileList) return
@@ -701,7 +718,7 @@ export function SmartUpload() {
             slug: item.selectedSlug,
             uploadTitle: item.title,
             uploadDescription: item.description,
-            uploaderName: identity ?? item.uploaderName,
+            uploaderName: uploaderForSaveItem(identity, item),
             storagePath: item.storagePath,
             fileName: item.file.name,
             contentHash: item.contentHash,
@@ -720,7 +737,7 @@ export function SmartUpload() {
             slug: item.selectedSlug,
             uploadTitle: item.title,
             uploadDescription: item.description,
-            uploaderName: identity ?? item.uploaderName,
+            uploaderName: uploaderForSaveItem(identity, item),
             linkUrl: item.linkUrl,
           })
 
@@ -750,24 +767,27 @@ export function SmartUpload() {
 
   const handleDragLeave = useCallback(() => setIsDragging(false), [])
 
-  // Register handlers so the rest of the app can trigger uploads via context.
-  // Refs ensure we always call the latest version without re-registering.
-  const processFilesRef = useRef(processFiles)
-  processFilesRef.current = processFiles
-
-  function openPanel(slug?: string) {
+  const openPanel = useCallback((slug?: string) => {
     setPanelDefaultSlug(slug)
     setIsOpen(true)
-  }
+  }, [])
+
+  // Register handlers so the rest of the app can trigger uploads via context.
+  const processFilesRef = useRef(processFiles)
   const openPanelRef = useRef(openPanel)
-  openPanelRef.current = openPanel
+  // Sync latest processFiles into ref for stable registerUploadHandler subscription.
+  useLayoutEffect(() => {
+    processFilesRef.current = processFiles
+  }, [processFiles])
+  useLayoutEffect(() => {
+    openPanelRef.current = openPanel
+  }, [openPanel])
 
   useEffect(() => {
     return registerUploadHandler(
       (files, slug) => processFilesRef.current(files, slug),
       (slug) => openPanelRef.current(slug),
     )
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const doneItems = items.filter((i) => i.status === 'done')

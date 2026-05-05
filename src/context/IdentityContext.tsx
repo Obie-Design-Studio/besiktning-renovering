@@ -38,10 +38,12 @@ export function IdentityProvider({ children }: { children: React.ReactNode }) {
   const [cookieIdentity, setCookieIdentity] = useState<IdentityName | null>(null)
   const [sessionIdentity, setSessionIdentity] = useState<IdentityName | null>(null)
 
+  /* eslint-disable react-hooks/set-state-in-effect -- one-time hydrate from cookie / sessionStorage after client mount */
   useEffect(() => {
     setCookieIdentity(readCookie(COOKIE_NAME))
     setSessionIdentity(readSession())
   }, [])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   function setFallbackIdentity(name: IdentityName) {
     setSessionIdentity(name)

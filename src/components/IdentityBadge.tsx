@@ -10,7 +10,13 @@ const DISPLAY: Record<string, string> = {
 
 export function IdentityBadge() {
   const { identity } = useIdentityContext()
-  if (!identity) return null
+  if (!identity) {
+    return (
+      <span style={{ fontSize: '0.75rem', color: '#B45309', fontWeight: 500 }}>
+        Ej identifierad · öppna din token-länk
+      </span>
+    )
+  }
 
   return (
     <span

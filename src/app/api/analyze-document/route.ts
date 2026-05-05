@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { GoogleGenAI } from '@google/genai'
 import { CHECKLIST_ITEMS } from '@/data/checklist-items'
+import { GEMINI_FLASH_MODEL } from '@/lib/gemini-model'
 
 // Extend Vercel serverless timeout to 60s — PDF analysis can be slow for large files.
 export const maxDuration = 60
@@ -80,7 +81,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const base64 = buffer.toString('base64')
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.0-flash',
+      model: GEMINI_FLASH_MODEL,
       contents: [
         {
           parts: [
@@ -89,6 +90,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           ],
         },
       ],
+      config: {
+        thinkingConfig: { thinkingBudget: 0 },
+      },
     })
 
     const raw = response.text ?? ''
