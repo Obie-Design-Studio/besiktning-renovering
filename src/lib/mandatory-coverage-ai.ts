@@ -8,24 +8,111 @@ import {
 import type { DocumentUpload } from '@/types/document'
 import { GEMINI_FLASH_MODEL } from '@/lib/gemini-model'
 
+/** Normalize stored titles/descriptions so substring checks survive hyphens and Swedish compounds. */
+function normalizeCorpusText(corpusLower: string): string {
+  return corpusLower
+    .replace(/\u00ad/g, '') // soft hyphen
+    .replace(/[\u2010-\u2015\u2212]/g, '-') // unicode dashes → ascii
+    .replace(/-/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+/** Övrig uploads that clearly belong to a category — counted when resolving mis-filed mandatory rows. */
+function extraUploadsRelevantToCategory(category: Category, extra: DocumentUpload[]): DocumentUpload[] {
+  if (extra.length === 0) return []
+  switch (category) {
+    case 'VVS':
+      return extra.filter((u) => {
+        const t = normalizeCorpusText(`${u.upload_title}\n${u.upload_description}`.toLowerCase())
+        return (
+          /vvs|säker.?vatten|säkervatten|avlopp|rör|provtryck|sanitär|värmepump|tappvatten|vatteninstallation|fjärrvärme|värmesystem/i.test(
+            t,
+          ) ||
+          (t.includes('intyg') && (t.includes('säker') || t.includes('vatteninstallation')))
+        )
+      })
+    default:
+      return []
+  }
+}
+
+function corpusForMandatoryCategory(
+  category: Category,
+  itemsInCategory: ChecklistItem[],
+  uploadsBySlug: Record<string, DocumentUpload[]>,
+  extraUploads: DocumentUpload[],
+): DocumentUpload[] {
+  const fromSlugs = itemsInCategory.flatMap((i) => uploadsBySlug[i.slug] ?? [])
+  return [...fromSlugs, ...extraUploadsRelevantToCategory(category, extraUploads)]
+}
+
+function dedupeUploads(uploads: DocumentUpload[]): DocumentUpload[] {
+  const seen = new Set<string>()
+  const out: DocumentUpload[] = []
+  for (const u of uploads) {
+    if (seen.has(u.id)) continue
+    seen.add(u.id)
+    out.push(u)
+  }
+  return out
+}
+
+/** Docs anywhere on the site whose text signals VVS content — catches rows filed under Handlingar etc. */
+function uploadsLikelyVvsRelated(uploads: DocumentUpload[]): DocumentUpload[] {
+  return uploads.filter((u) => {
+    const n = normalizeCorpusText(`${u.upload_title}\n${u.upload_description}`.toLowerCase())
+    return /säker.?vatten|säkervatten|provtryck|vatteninstallation|avlopp|rör|sanitär|\bvvs\b|tappvatten|fjärrvärme|värmesystem|heat\s*up|tappvattensystem|intyg.*vatten|vatten.*intyg/i.test(
+      n,
+    )
+  })
+}
+
+function mergeVvsSignalUploads(
+  category: Category,
+  base: DocumentUpload[],
+  allUploads: DocumentUpload[],
+): DocumentUpload[] {
+  if (category !== 'VVS') return base
+  return dedupeUploads([...base, ...uploadsLikelyVvsRelated(allUploads)])
+}
+
+/** Full corpus for mandatory matching (includes cross-area VVS signals when category is VVS). */
+function mandatoryCorpusUploads(
+  category: Category,
+  itemsInCategory: ChecklistItem[],
+  uploadsBySlug: Record<string, DocumentUpload[]>,
+  extraUploads: DocumentUpload[],
+  allUploads: DocumentUpload[],
+): DocumentUpload[] {
+  const base = corpusForMandatoryCategory(category, itemsInCategory, uploadsBySlug, extraUploads)
+  return mergeVvsSignalUploads(category, base, allUploads)
+}
+
 /** Plain-text signals per slug when files sit under the wrong checklist row (backup if Gemini stalls or JSON breaks). */
 function heuristicCoversSlug(slug: string, corpusLower: string): boolean {
   // NB: corpus is titlar + beskrivningar i samma område, gemener.
+  const n = normalizeCorpusText(corpusLower)
   switch (slug) {
     case 'vvs-sakervatten':
       return (
-        corpusLower.includes('säker vatten') ||
-        corpusLower.includes('säkervatten') ||
-        corpusLower.includes('säker vatteninstallation') ||
-        corpusLower.includes('säkervatteninstallation')
+        n.includes('säker vatten') ||
+        n.includes('säkervatten') ||
+        n.includes('säker vatteninstallation') ||
+        n.includes('säkervatteninstallation') ||
+        // Compound word: "vatteninstallation" has no word boundary between vatten … installation
+        (n.includes('säker') && n.includes('vatteninstallation')) ||
+        // Short AI titles: intyg + VVS topic words
+        (n.includes('intyg') &&
+          /vatten|avlopp|vvs|rör|sanitär|installation|tapp|värmepump|provtryck/i.test(n))
       )
     case 'vvs-egenkontroll':
       return (
-        corpusLower.includes('provtryck') ||
-        corpusLower.includes('provtryckning') ||
-        corpusLower.includes('täthetsprov') ||
-        corpusLower.includes('egenkontroll') ||
-        corpusLower.includes('relining')
+        n.includes('provtryck') ||
+        n.includes('provtryckning') ||
+        n.includes('täthetsprov') ||
+        n.includes('egenkontroll') ||
+        n.includes('relining')
       )
     case 'el-egenkontroll':
       return (
@@ -142,6 +229,8 @@ async function analyzeCategory(
   category: Category,
   itemsInCategory: ChecklistItem[],
   uploadsBySlug: Record<string, DocumentUpload[]>,
+  extraUploads: DocumentUpload[],
+  allUploads: DocumentUpload[],
 ): Promise<string[]> {
   const requiredInCat = itemsInCategory.filter((i) => i.required)
   const missingDirect = requiredInCat.filter(
@@ -149,7 +238,13 @@ async function analyzeCategory(
   )
   if (missingDirect.length === 0) return []
 
-  const categoryUploads = itemsInCategory.flatMap((i) => uploadsBySlug[i.slug] ?? [])
+  const categoryUploads = mandatoryCorpusUploads(
+    category,
+    itemsInCategory,
+    uploadsBySlug,
+    extraUploads,
+    allUploads,
+  )
   if (categoryUploads.length === 0) return []
 
   const allowed = new Set(missingDirect.map((i) => i.slug))
@@ -180,18 +275,24 @@ async function analyzeCategory(
  */
 export async function resolveAiMandatoryCoverage(
   uploadsBySlug: Record<string, DocumentUpload[]>,
+  extraUploads: DocumentUpload[] = [],
 ): Promise<string[]> {
+  const allUploads = dedupeUploads([
+    ...Object.values(uploadsBySlug).flat(),
+    ...extraUploads,
+  ])
+
   const apiKey = process.env.GOOGLE_AI_API_KEY?.trim()
   if (!apiKey) {
     // Without Gemini, still apply heuristics so mis-filed docs clear mandatory flags.
-    return resolveHeuristicOnly(uploadsBySlug)
+    return resolveHeuristicOnly(uploadsBySlug, extraUploads, allUploads)
   }
 
   const ai = new GoogleGenAI({ apiKey })
   const grouped = groupItemsByCategory(CHECKLIST_ITEMS)
 
   const tasks = grouped.map(([category, itemsInCategory]) =>
-    analyzeCategory(ai, category, itemsInCategory, uploadsBySlug),
+    analyzeCategory(ai, category, itemsInCategory, uploadsBySlug, extraUploads, allUploads),
   )
 
   const nested = await Promise.all(tasks)
@@ -199,16 +300,26 @@ export async function resolveAiMandatoryCoverage(
 }
 
 /** When GOOGLE_AI_API_KEY is missing: keyword-only coverage (dev / fallback). */
-function resolveHeuristicOnly(uploadsBySlug: Record<string, DocumentUpload[]>): string[] {
+function resolveHeuristicOnly(
+  uploadsBySlug: Record<string, DocumentUpload[]>,
+  extraUploads: DocumentUpload[],
+  allUploads: DocumentUpload[],
+): string[] {
   const grouped = groupItemsByCategory(CHECKLIST_ITEMS)
   const out: string[] = []
-  for (const [, itemsInCategory] of grouped) {
+  for (const [category, itemsInCategory] of grouped) {
     const requiredInCat = itemsInCategory.filter((i) => i.required)
     const missingDirect = requiredInCat.filter(
       (i) => (uploadsBySlug[i.slug]?.length ?? 0) === 0,
     )
     if (missingDirect.length === 0) continue
-    const categoryUploads = itemsInCategory.flatMap((i) => uploadsBySlug[i.slug] ?? [])
+    const categoryUploads = mandatoryCorpusUploads(
+      category,
+      itemsInCategory,
+      uploadsBySlug,
+      extraUploads,
+      allUploads,
+    )
     if (categoryUploads.length === 0) continue
     const allowed = new Set(missingDirect.map((i) => i.slug))
     out.push(...heuristicSatisfiedSlugs(allowed, categoryUploads))

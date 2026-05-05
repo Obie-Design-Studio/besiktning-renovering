@@ -1,7 +1,7 @@
 'use server'
 
 import { createSupabaseServer } from '@/lib/supabase'
-import { isTobiasSession } from '@/lib/server-identity'
+import { hasPortalIdentityCookie } from '@/lib/server-identity'
 import { NAV_ITEMS } from '@/data/nav-items'
 
 const ALLOWED_NAV_IDS = new Set<string>(NAV_ITEMS.map((n) => n.id))
@@ -10,8 +10,12 @@ export async function setSectionCompletion(
   navId: string,
   completed: boolean,
 ): Promise<{ success: boolean; error?: string }> {
-  if (!(await isTobiasSession())) {
-    return { success: false, error: 'Endast Tobias kan markera sektioner.' }
+  if (!(await hasPortalIdentityCookie())) {
+    return {
+      success: false,
+      error:
+        'Ingen giltig inloggningscookie (idn). Öppna sidan med ?token=… eller klistra in token i den gula hjälprutan högst upp.',
+    }
   }
   if (!ALLOWED_NAV_IDS.has(navId)) {
     return { success: false, error: 'Ogiltig sektion.' }

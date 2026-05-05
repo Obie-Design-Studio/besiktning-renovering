@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useIdentityContext } from '@/context/IdentityContext'
 import { setSectionCompletion } from '@/actions/section-completion'
 
-/** Tobias-only: manual “section complete” shortcut for besiktning workflow. */
+/** Manual “section complete” shortcut — requires identity cookie (use ?token= or token paste in yellow banner). */
 export function SectionCompleteToggle({
   navId,
   completed,
@@ -16,17 +16,21 @@ export function SectionCompleteToggle({
   const { identity } = useIdentityContext()
   const router = useRouter()
   const [pending, setPending] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  if (identity !== 'Tobias') return null
+  if (identity === null) return null
 
   async function toggle() {
     setPending(true)
+    setError(null)
     const result = await setSectionCompletion(navId, !completed)
     setPending(false)
     if (result.success) router.refresh()
+    else setError(result.error ?? 'Kunde inte spara.')
   }
 
   return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
     <button
       type="button"
       disabled={pending}
@@ -46,5 +50,11 @@ export function SectionCompleteToggle({
     >
       {completed ? '✓ Sektion klar' : 'Markera sektion klar'}
     </button>
+    {error && (
+      <span style={{ fontSize: '0.625rem', color: '#DC2626', maxWidth: '14rem', textAlign: 'right', lineHeight: 1.35 }}>
+        {error}
+      </span>
+    )}
+    </div>
   )
 }

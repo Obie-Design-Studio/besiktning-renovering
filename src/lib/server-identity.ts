@@ -12,3 +12,8 @@ export async function getCookieIdentity(): Promise<IdentityName | null> {
 export async function isTobiasSession(): Promise<boolean> {
   return (await getCookieIdentity()) === 'Tobias'
 }
+
+/** Any valid identity cookie — used for section-complete override (trusted portal roles). */
+export async function hasPortalIdentityCookie(): Promise<boolean> {
+  return (await getCookieIdentity()) !== null
+}

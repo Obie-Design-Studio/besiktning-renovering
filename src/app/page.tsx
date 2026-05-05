@@ -14,6 +14,8 @@ import type { Comment } from '@/types/comment'
 
 const EXTRA_SLUG = 'ovrig'
 
+export const dynamic = 'force-dynamic'
+
 interface PageData {
   checklistUploadsBySlug: Record<string, DocumentUpload[]>
   extraUploads: DocumentUpload[]
@@ -75,7 +77,7 @@ async function fetchPageData(): Promise<PageData> {
   )
   const completedSectionNavIds = [...completedNavIds]
 
-  const aiSatisfiedRequiredSlugs = await resolveAiMandatoryCoverage(checklistUploadsBySlug)
+  const aiSatisfiedRequiredSlugs = await resolveAiMandatoryCoverage(checklistUploadsBySlug, extraUploads)
   const aiSatisfiedSet = new Set(aiSatisfiedRequiredSlugs)
 
   function mandatoryStillMissing(item: (typeof CHECKLIST_ITEMS)[number]): boolean {
