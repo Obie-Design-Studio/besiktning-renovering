@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useIdentityContext } from '@/context/IdentityContext'
 import { setSectionCompletion } from '@/actions/section-completion'
 
 /** Manual “section complete” shortcut — requires identity cookie (use ?token= or token paste in yellow banner). */
@@ -13,12 +12,9 @@ export function SectionCompleteToggle({
   navId: string
   completed: boolean
 }) {
-  const { identity } = useIdentityContext()
   const router = useRouter()
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
-  if (identity === null) return null
 
   async function toggle() {
     setPending(true)

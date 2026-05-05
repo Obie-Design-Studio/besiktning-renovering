@@ -1,13 +1,17 @@
-import { NextRequest, NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
+import { NextResponse } from 'next/server'
 import { resolveToken, COOKIE_NAME, COOKIE_MAX_AGE } from '@/lib/identity'
 
+/**
+ * Next.js 16+ convention: `proxy.ts` runs before routes (replaces deprecated `middleware.ts`).
+ * Visiting `/?token=…` sets the `idn` cookie and redirects to strip the token from the URL.
+ */
 export function proxy(request: NextRequest) {
   const token = request.nextUrl.searchParams.get('token')
 
   if (token) {
     const identity = resolveToken(token)
     if (identity) {
-      // Strip the token from the URL so it's not visible in the browser bar
       const cleanUrl = request.nextUrl.clone()
       cleanUrl.searchParams.delete('token')
 
@@ -16,18 +20,16 @@ export function proxy(request: NextRequest) {
         maxAge: COOKIE_MAX_AGE,
         path: '/',
         sameSite: 'lax',
-        httpOnly: false, // readable by client JS
+        httpOnly: false,
         secure: process.env.NODE_ENV === 'production',
       })
       return response
     }
-    // Unknown token — continue normally, don't set a cookie
   }
 
   return NextResponse.next()
 }
 
 export const config = {
-  // Run on all routes except Next.js internals and static files
   matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
 }
