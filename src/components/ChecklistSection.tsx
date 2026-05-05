@@ -7,6 +7,8 @@ import { CommentThread } from '@/components/CommentThread'
 import { DeleteButton } from '@/components/DeleteButton'
 import { DocumentUploaderMeta } from '@/components/DocumentUploaderMeta'
 import { SectionCompleteToggle } from '@/components/SectionCompleteToggle'
+import { AiRecheckButton } from '@/components/AiRecheckButton'
+import { MoveDocumentSuggestion } from '@/components/MoveDocumentSuggestion'
 import { updateDocument } from '@/actions/update-document'
 import { useIdentityContext } from '@/context/IdentityContext'
 import { useSmartUpload } from '@/context/SmartUploadContext'
@@ -114,6 +116,13 @@ function UploadedFile({
           </div>
         </div>
       )}
+      {upload.suggested_slug && upload.suggested_slug !== upload.document_item_slug && (
+        <MoveDocumentSuggestion
+          documentId={upload.id}
+          currentSlug={upload.document_item_slug}
+          suggestedSlug={upload.suggested_slug}
+        />
+      )}
       <CommentThread slug={`file:${upload.id}`} comments={comments} />
     </div>
   )
@@ -193,6 +202,11 @@ export function ChecklistSection({
           <p style={{ fontSize: '0.75rem', color: 'var(--muted)', marginTop: '0.65rem', lineHeight: 1.45 }}>
             Minst ett obligatoriskt krav är bedömt som täckt utifrån befintliga dokument i samma område (AI jämför titel och beskrivning med kravlistan när arkiveringen hamnat fel).
           </p>
+        )}
+        {!allRequiredDone && (
+          <div style={{ marginTop: '0.75rem' }}>
+            <AiRecheckButton />
+          </div>
         )}
       </div>
 

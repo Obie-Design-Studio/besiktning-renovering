@@ -12,6 +12,8 @@ export interface DocumentUpload {
   upload_description: string
   uploader_name: UploaderName
   uploaded_at: string
+  /** AI-suggested slug when the document appears to be filed under the wrong section. Null = no suggestion. */
+  suggested_slug?: string | null
 }
 
 export interface UploadDocumentState {

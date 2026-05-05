@@ -1,8 +1,10 @@
 'use server'
 
+import { after } from 'next/server'
 import { createSupabaseServer } from '@/lib/supabase'
 import { CHECKLIST_ITEMS } from '@/data/checklist-items'
 import { hashFile } from '@/lib/hash-file'
+import { refreshAiCoverageInBackground } from '@/lib/refresh-ai-coverage'
 import type { UploaderName } from '@/types/document'
 
 const STORAGE_BUCKET = 'inspection-pdfs'
@@ -74,6 +76,7 @@ export async function saveDocumentUpload(input: SaveDocumentInput): Promise<Save
     })
 
     if (dbError) return { success: false, error: `Kunde inte spara: ${dbError.message}` }
+    after(refreshAiCoverageInBackground())
     return { success: true }
   }
 
@@ -133,6 +136,7 @@ export async function saveDocumentUpload(input: SaveDocumentInput): Promise<Save
         content_hash: null,
       })
       if (dbError) return { success: false, error: `Kunde inte spara: ${dbError.message}` }
+      after(refreshAiCoverageInBackground())
       return { success: true }
     }
 
@@ -173,5 +177,6 @@ export async function saveDocumentUpload(input: SaveDocumentInput): Promise<Save
 
   if (dbError) return { success: false, error: `Kunde inte spara: ${dbError.message}` }
 
+  after(refreshAiCoverageInBackground())
   return { success: true }
 }

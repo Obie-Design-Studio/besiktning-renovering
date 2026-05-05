@@ -9,6 +9,7 @@ import { UploadLog } from '@/components/UploadLog'
 import { NAV_ITEMS } from '@/data/nav-items'
 import { CHECKLIST_ITEMS, CATEGORY_NAV_ID } from '@/data/checklist-items'
 import { resolveAiMandatoryCoverage } from '@/lib/mandatory-coverage-ai'
+import { resolveAiCoverageFromCache } from '@/lib/ai-coverage-cache'
 import type { DocumentUpload } from '@/types/document'
 import type { Comment } from '@/types/comment'
 
@@ -77,7 +78,16 @@ async function fetchPageData(): Promise<PageData> {
   )
   const completedSectionNavIds = [...completedNavIds]
 
-  const aiSatisfiedRequiredSlugs = await resolveAiMandatoryCoverage(checklistUploadsBySlug, extraUploads)
+  // Read persisted AI results from DB first (fast, no Gemini call on every SSR).
+  // Falls back to running Gemini live when the cache table is empty or missing.
+  const cachedSlugs = await resolveAiCoverageFromCache(supabase)
+  let aiSatisfiedRequiredSlugs: string[]
+  if (cachedSlugs !== null) {
+    aiSatisfiedRequiredSlugs = cachedSlugs
+  } else {
+    const { satisfiedSlugs } = await resolveAiMandatoryCoverage(checklistUploadsBySlug, extraUploads)
+    aiSatisfiedRequiredSlugs = satisfiedSlugs
+  }
   const aiSatisfiedSet = new Set(aiSatisfiedRequiredSlugs)
 
   function mandatoryStillMissing(item: (typeof CHECKLIST_ITEMS)[number]): boolean {

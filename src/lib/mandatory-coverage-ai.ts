@@ -180,14 +180,14 @@ ALLA UPPLADDADE DOKUMENT I DETTA OMRÅDE:
 
 ${docBlock}
 
-Uppgift: För varje obligatorisk delpost, avgör om NÅGOT av dokumenten uppfyller kraven för just den posten utifrån titel och beskrivning — även om arkiveringen/kategorival är fel. Om titeln eller beskrivningen tydligt handlar om det som krävs (t.ex. Säker Vatten-intyg för säkervatten-raden, eller provtryckningsprotokoll för provtryck-raden), sätt covered till true.
+Uppgift: För varje obligatorisk delpost, avgör om NÅGOT av dokumenten uppfyller kraven för just den posten utifrån titel och beskrivning — även om arkiveringen/kategorival är fel. Om titeln eller beskrivningen tydligt handlar om det som krävs (t.ex. Säker Vatten-intyg för säkervatten-raden, eller provtryckningsprotokoll för provtryck-raden), sätt covered till true och ange vilket dokument (1-baserat index i listan ovan) som täcker kravet bäst i best_doc.
 
-Sätt covered till false bara om inget dokument verkar handla om den aktuella kravraden.
+Sätt covered till false bara om inget dokument verkar handla om den aktuella kravraden. Sätt då best_doc till null.
 
 Svara ENDAST med giltig JSON (ingen annan text):
-{"coverage":[{"slug":"<exakt slug>","covered":true}]}
+{"coverage":[{"slug":"<exakt slug>","covered":true,"best_doc":2}]}
 
-Inkludera exakt en rad per obligatorisk delpost ovan. Slug ska matcha exakt de slug-värden som listas ovan. covered är antingen true eller false.`
+Inkludera exakt en rad per obligatorisk delpost ovan. Slug ska matcha exakt de slug-värden som listas ovan. covered är antingen true eller false. best_doc är ett heltal (1-baserat dokumentindex) eller null.`
 }
 
 /** Pull out a JSON object if the model adds conversational text around it. */
@@ -212,16 +212,46 @@ function extractJsonObject(raw: string): string {
   }
 }
 
-function parseCoverageJson(raw: string, allowedSlugs: Set<string>): string[] {
+interface CoverageRow {
+  slug?: string
+  covered?: boolean
+  best_doc?: number | null
+}
+
+interface ParsedCoverage {
+  /** Required slugs AI says are satisfied */
+  satisfiedSlugs: string[]
+  /** Map of docIndex (0-based) → the required slug it best covers */
+  docIndexToRequiredSlug: Map<number, string>
+}
+
+function parseCoverageJson(raw: string, allowedSlugs: Set<string>): ParsedCoverage {
   const jsonStr = extractJsonObject(raw)
-  const parsed = JSON.parse(jsonStr) as { coverage?: { slug?: string; covered?: boolean }[] }
-  const out: string[] = []
+  const parsed = JSON.parse(jsonStr) as { coverage?: CoverageRow[] }
+  const satisfiedSlugs: string[] = []
+  const docIndexToRequiredSlug = new Map<number, string>()
   for (const row of parsed.coverage ?? []) {
     if (row.covered === true && row.slug && allowedSlugs.has(row.slug)) {
-      out.push(row.slug)
+      satisfiedSlugs.push(row.slug)
+      // best_doc is 1-based from the prompt; convert to 0-based index
+      if (typeof row.best_doc === 'number' && row.best_doc >= 1) {
+        docIndexToRequiredSlug.set(row.best_doc - 1, row.slug)
+      }
     }
   }
-  return out
+  return { satisfiedSlugs, docIndexToRequiredSlug }
+}
+
+export interface MisfiledSuggestion {
+  /** DB id of the document that should move */
+  documentId: string
+  /** The required checklist slug it should be moved to */
+  targetSlug: string
+}
+
+interface CategoryAnalysisResult {
+  satisfiedSlugs: string[]
+  misfiledSuggestions: MisfiledSuggestion[]
 }
 
 async function analyzeCategory(
@@ -231,12 +261,12 @@ async function analyzeCategory(
   uploadsBySlug: Record<string, DocumentUpload[]>,
   extraUploads: DocumentUpload[],
   allUploads: DocumentUpload[],
-): Promise<string[]> {
+): Promise<CategoryAnalysisResult> {
   const requiredInCat = itemsInCategory.filter((i) => i.required)
   const missingDirect = requiredInCat.filter(
     (i) => (uploadsBySlug[i.slug]?.length ?? 0) === 0,
   )
-  if (missingDirect.length === 0) return []
+  if (missingDirect.length === 0) return { satisfiedSlugs: [], misfiledSuggestions: [] }
 
   const categoryUploads = mandatoryCorpusUploads(
     category,
@@ -245,12 +275,14 @@ async function analyzeCategory(
     extraUploads,
     allUploads,
   )
-  if (categoryUploads.length === 0) return []
+  if (categoryUploads.length === 0) return { satisfiedSlugs: [], misfiledSuggestions: [] }
 
   const allowed = new Set(missingDirect.map((i) => i.slug))
   const fromHeuristic = heuristicSatisfiedSlugs(allowed, categoryUploads)
 
-  let fromAi: string[] = []
+  let satisfiedSlugs: string[] = []
+  const misfiledSuggestions: MisfiledSuggestion[] = []
+
   try {
     const prompt = buildPrompt(category, missingDirect, categoryUploads)
     const response = await ai.models.generateContent({
@@ -261,22 +293,43 @@ async function analyzeCategory(
       },
     })
     const raw = response.text ?? ''
-    fromAi = parseCoverageJson(raw, allowed)
+    const parsed = parseCoverageJson(raw, allowed)
+    satisfiedSlugs = parsed.satisfiedSlugs
+
+    // Detect mis-filed documents: AI says doc at index N covers required slug S,
+    // but the doc is currently stored under a different slug.
+    for (const [docIndex, requiredSlug] of parsed.docIndexToRequiredSlug) {
+      const doc = categoryUploads[docIndex]
+      if (doc && doc.document_item_slug !== requiredSlug) {
+        misfiledSuggestions.push({ documentId: doc.id, targetSlug: requiredSlug })
+      }
+    }
   } catch (err) {
     console.error('[mandatory-coverage-ai] Gemini failed for category', category, err)
   }
 
-  return [...new Set([...fromHeuristic, ...fromAi])]
+  return {
+    satisfiedSlugs: [...new Set([...fromHeuristic, ...satisfiedSlugs])],
+    misfiledSuggestions,
+  }
+}
+
+export interface AiMandatoryCoverageResult {
+  /** Required slugs AI judges as covered by an existing document */
+  satisfiedSlugs: string[]
+  /** Documents AI thinks are filed under the wrong slug */
+  misfiledSuggestions: MisfiledSuggestion[]
 }
 
 /**
  * Required checklist slugs that have no direct upload but are satisfied by another
  * document in the same category (Gemini + keyword fallback on titles/descriptions).
+ * Also returns mis-filed document suggestions where AI detected a better slug.
  */
 export async function resolveAiMandatoryCoverage(
   uploadsBySlug: Record<string, DocumentUpload[]>,
   extraUploads: DocumentUpload[] = [],
-): Promise<string[]> {
+): Promise<AiMandatoryCoverageResult> {
   const allUploads = dedupeUploads([
     ...Object.values(uploadsBySlug).flat(),
     ...extraUploads,
@@ -284,19 +337,22 @@ export async function resolveAiMandatoryCoverage(
 
   const apiKey = process.env.GOOGLE_AI_API_KEY?.trim()
   if (!apiKey) {
-    // Without Gemini, still apply heuristics so mis-filed docs clear mandatory flags.
-    return resolveHeuristicOnly(uploadsBySlug, extraUploads, allUploads)
+    return { satisfiedSlugs: resolveHeuristicOnly(uploadsBySlug, extraUploads, allUploads), misfiledSuggestions: [] }
   }
 
   const ai = new GoogleGenAI({ apiKey })
   const grouped = groupItemsByCategory(CHECKLIST_ITEMS)
 
-  const tasks = grouped.map(([category, itemsInCategory]) =>
-    analyzeCategory(ai, category, itemsInCategory, uploadsBySlug, extraUploads, allUploads),
+  const results = await Promise.all(
+    grouped.map(([category, itemsInCategory]) =>
+      analyzeCategory(ai, category, itemsInCategory, uploadsBySlug, extraUploads, allUploads),
+    ),
   )
 
-  const nested = await Promise.all(tasks)
-  return [...new Set(nested.flat())]
+  return {
+    satisfiedSlugs: [...new Set(results.flatMap((r) => r.satisfiedSlugs))],
+    misfiledSuggestions: results.flatMap((r) => r.misfiledSuggestions),
+  }
 }
 
 /** When GOOGLE_AI_API_KEY is missing: keyword-only coverage (dev / fallback). */
