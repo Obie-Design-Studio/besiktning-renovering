@@ -27,9 +27,11 @@ interface ChecklistSectionProps {
 function UploadedFile({
   upload,
   comments,
+  sectionCompleted = false,
 }: {
   upload: DocumentUpload
   comments: Comment[]
+  sectionCompleted?: boolean
 }) {
   const { identity } = useIdentityContext()
   const router = useRouter()
@@ -116,7 +118,7 @@ function UploadedFile({
           </div>
         </div>
       )}
-      {upload.suggested_slug && upload.suggested_slug !== upload.document_item_slug && (
+      {!sectionCompleted && upload.suggested_slug && upload.suggested_slug !== upload.document_item_slug && (
         <MoveDocumentSuggestion
           documentId={upload.id}
           currentSlug={upload.document_item_slug}
@@ -261,6 +263,7 @@ export function ChecklistSection({
                         <UploadedFile
                           upload={upload}
                           comments={commentsBySlug[`file:${upload.id}`] ?? []}
+                          sectionCompleted={sectionDone}
                         />
                       </div>
                     ))}
